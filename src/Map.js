@@ -55,6 +55,11 @@ export const useMap = () => {
               .filter(key => (feature.properties[key] === null))
               .forEach(key => feature.properties[key] = 'null');
           });
+
+          // airDoseRate（放射線量）を降順でソートする。
+          data.features.sort((a, b) => {
+            return ((a.properties.airDoseRate === 'null') ? 0.0 : a.properties.airDoseRate) - ((b.properties.airDoseRate === 'null') ? 0.0 : b.properties.airDoseRate);
+          });
           return data;
         })
         .then(data => {
