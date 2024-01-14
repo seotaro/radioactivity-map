@@ -1,0 +1,15 @@
+# ignore all
+
+*
+
+# upload list
+
+!.
+!package.json
+!yarn.lock
+!index.js
+!utils.js
+!nginx.conf
+!Dockerfile
+!src/
+!public/
