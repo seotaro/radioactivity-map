@@ -4,7 +4,6 @@ ENV NODE_ENV production
 ENV GENERATE_SOURCEMAP=false 
 ENV REACT_APP_ROUTE_BASENAME='radioactivity-viewer' 
 ENV REACT_APP_RADIOACTIVITY_API_URL='https://api-eyamisplua-an.a.run.app'
-ENV REACT_APP_AMEDAS_API_URL='https://jma-amedas-mrfbzypr4q-an.a.run.app/'
 
 WORKDIR /app
 COPY . ./

@@ -65,12 +65,9 @@ const SETTINGS = {
 const Legend = (props) => {
   const {
     lastModifiedRadioactivity,
-    lastModifiedAmedas,
     count,
     legend,
-    isShowAmedas,
     onChangeLegend,
-    onChangeAmedas
   } = props;
 
   const items = [];
@@ -144,12 +141,7 @@ const Legend = (props) => {
           <Typography variant="h6" sx={{ m: 1, m: 1 }}>放射線量測定マップ プロパティ</Typography>
           <Typography variant="h7" sx={{ mx: 2, my: 0.1, fontSize: 12, color: 'gray' }}>放射線量: {lastModifiedRadioactivity ? moment(lastModifiedRadioactivity).format() : ''}</Typography>
           <Typography variant="h7" sx={{ mx: 2, my: 0.1, fontSize: 12, color: 'gray' }}>モニタリングポスト数: {count ? count : ''}</Typography>
-          <Typography variant="h7" sx={{ mx: 2, my: 1, fontSize: 12, color: 'gray' }}>アメダス: {lastModifiedAmedas ? moment(lastModifiedAmedas).format() : ''}</Typography>
         </Stack>
-
-        <FormControlLabel sx={{ mx: 1 }} control={
-          <Checkbox checked={isShowAmedas} onChange={(event) => onChangeAmedas(event.target.checked)} />
-        } label="アメダス" />
 
         {/* 凡例選択 */}
         <Box sx={{ m: 1 }}>
@@ -189,25 +181,18 @@ const Legend = (props) => {
 
 function App() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [mapContainer, isLoading, lastModifiedRadioactivity, lastModifiedAmedas, count, legend, isShowAmedas, { setLegend, showAmedas }] = useMap();
+  const [mapContainer, isLoading, lastModifiedRadioactivity, count, legend, { setLegend }] = useMap();
 
   useEffect(() => {
     setLegend(searchParams.get('legend') || 'airDoseRate');
-    showAmedas(searchParams.get('amedas') === 'true');
   }, []);
 
   useEffect(() => {
     setLegend(searchParams.get('legend') || 'airDoseRate');
-    showAmedas(searchParams.get('amedas') === 'true');
   }, [searchParams]);
 
   const _setLegend = (legend) => {
     searchParams.set('legend', legend);
-    setSearchParams(searchParams);
-  }
-
-  const _setAmedas = (isShow) => {
-    searchParams.set('amedas', isShow);
     setSearchParams(searchParams);
   }
 
@@ -219,12 +204,9 @@ function App() {
 
     <Legend
       lastModifiedRadioactivity={lastModifiedRadioactivity}
-      lastModifiedAmedas={lastModifiedAmedas}
       count={count}
       legend={legend}
-      isShowAmedas={isShowAmedas}
-      onChangeLegend={_setLegend}
-      onChangeAmedas={_setAmedas} />
+      onChangeLegend={_setLegend} />
   </>);
 }
 

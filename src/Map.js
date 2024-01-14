@@ -16,7 +16,6 @@ import {
 import { loadImage, toRgb } from './utils';
 
 const RADIOACTIVITY_API_URL = process.env.REACT_APP_RADIOACTIVITY_API_URL || 'http://localhost:8080';
-const AMEDAS_API_URL = process.env.REACT_APP_AMEDAS_API_URL || 'http://localhost:8080';
 
 const OPACITY = 0.8;
 
@@ -28,14 +27,11 @@ export const useMap = () => {
   const [zoom, setZoom] = useState(8);
   const [isLoading, setLoading] = useState(false);
   const [lastModifiedRadioactivity, setLastModifiedRadioactivity] = useState(false);  // GeoJSON の lastModified
-  const [lastModifiedAmedas, setLastModifiedAmedas] = useState(false);  // AMeDAS の lastModified
   const [count, setCount] = useState(false);  // GeoJSON の 地物数
 
   const [legend, _setLegend] = useState('airDoseRate');
-  const [isShowAmedas, _showAmedas] = useState(false);
 
   const legendRef = useRef('airDoseRate');
-  const isShowAmedasRef = useRef(false);
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -53,61 +49,6 @@ export const useMap = () => {
 
     map.current.on('load', async () => {
       setLoading(true);
-
-      fetch(AMEDAS_API_URL)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-
-          setLastModifiedAmedas(data.datetime);
-
-          map.current.addSource('amedas', {
-            type: 'geojson',
-            data: data,
-            attribution: '<a href="https://www.jma.go.jp/bosai/map.html/" target="_blank">気象庁「アメダス」を加工して作成</a>',
-          });
-
-          map.current.addLayer({
-            id: 'amedas-wind-layer',
-            type: 'symbol',
-            source: 'amedas',
-            filter: ['==', ['get', 'isWind'], true],
-            layout: {
-              visibility: isShowAmedasRef.current ? 'visible' : 'none',
-              'icon-allow-overlap': true,
-              'icon-anchor': 'center',
-              'icon-image': ['case',
-                ['==', ['get', 'windSpeed'], null], 'wind-calm', // 休止中
-                ['>', ['get', 'windSpeed'], 0.4], 'wind-arrow',
-                'wind-calm' // 静穏
-              ],
-              'icon-size': 0.6,
-              'icon-rotate': ['case',
-                ['==', ['get', 'windDirection'], null], 0, // 休止中
-                ['get', 'windDirection']
-              ],
-            },
-            paint: {
-              'icon-halo-color': 'black',
-              'icon-halo-width': 2.8,
-              'icon-color': ['case',
-                ['==', ['get', 'windSpeed'], null], '#888', // 休止中
-                ['<', ['get', 'windSpeed'], 5.0], '#e5e5ff', // 気象庁の 'rgb(242, 242, 255)' から変更した
-                ['<', ['get', 'windSpeed'], 10.0], 'rgb(0, 65, 255)',
-                ['<', ['get', 'windSpeed'], 15.0], 'rgb(250, 245, 0)',
-                ['<', ['get', 'windSpeed'], 20.0], 'rgb(255, 153, 0)',
-                ['<', ['get', 'windSpeed'], 25.0], 'rgb(255, 40, 0)',
-                'rgb(180, 0, 104)'
-              ],
-              'icon-opacity': OPACITY,
-            }
-          });
-        });
-
 
       fetch(RADIOACTIVITY_API_URL)
         .then(response => {
@@ -139,14 +80,12 @@ export const useMap = () => {
             paint: {
               'circle-radius': 6,
               'circle-stroke-color': 'gray',
-              'circle-stroke-opacity': isShowAmedasRef.current ? 0.25 : OPACITY,
+              'circle-stroke-opacity': OPACITY,
               'circle-stroke-width': 1,
               'circle-color': makeCircleColor(legendRef.current),
-              'circle-opacity': isShowAmedasRef.current ? 0.25 : OPACITY,
+              'circle-opacity': OPACITY,
             }
-          }, map.current.getLayer('amedas-wind-layer') ? 'amedas-wind-layer' : null);
-
-          // map.current.setLayoutProperty('radioactivity-layer', 'visibility', 'none');
+          });
 
           setLastModifiedRadioactivity(data.lastModified);
           setCount(data.features.length);
@@ -185,7 +124,6 @@ export const useMap = () => {
       map.current.on('mousemove', (e) => {
         const layers = [];
         if (map.current.getLayer('radioactivity-layer')) layers.push('radioactivity-layer');
-        if (map.current.getLayer('amedas-wind-layer')) layers.push('amedas-wind-layer');
 
         const features = map.current.queryRenderedFeatures(e.point, { layers });
         map.current.getCanvas().style.cursor = features.length ? 'crosshair' : '';
@@ -234,29 +172,6 @@ export const useMap = () => {
           }
         }
 
-        // アメダス
-        if (map.current.getLayer('amedas-wind-layer')) {
-          const features = map.current.queryRenderedFeatures(e.point,
-            { layers: ['amedas-wind-layer'] }
-          );
-          if (0 < features.length) {
-            for (let i = 0; i < features.length; i++) {
-              contents.push(`<h1>AMeDAS No.${i + 1}</h1>`);
-
-              const feature = features[i];
-              contents.push('<ul>');
-              Object.keys(feature.properties)
-                .map(key => contents.push(
-                  `<li key=${key}>
-                    <span class='key'>${key}:</span>
-                    <span class='value'>${feature.properties[key]}</span>
-                  </li>`
-                ))
-              contents.push('</ul>');
-            }
-          }
-        }
-
         if (0 < contents.length) {
           popup.setLngLat(e.lngLat)
             .setHTML(contents.join(''))
@@ -279,20 +194,7 @@ export const useMap = () => {
     map.current.setPaintProperty('radioactivity-layer', 'circle-color', makeCircleColor(_legend));
   }
 
-  const showAmedas = (_isShow) => {
-    isShowAmedasRef.current = _isShow;
-    _showAmedas(_isShow);
-
-    if (!map.current?.getLayer('amedas-wind-layer')) return;
-    map.current.setLayoutProperty('amedas-wind-layer', 'visibility', _isShow ? 'visible' : 'none');
-
-    if (map.current?.getLayer('radioactivity-layer')) {
-      map.current.setPaintProperty('radioactivity-layer', 'circle-opacity', _isShow ? 0.25 : OPACITY);
-      map.current.setPaintProperty('radioactivity-layer', 'circle-stroke-opacity', _isShow ? 0.25 : OPACITY);
-    }
-  }
-
-  return [mapContainer, isLoading, lastModifiedRadioactivity, lastModifiedAmedas, count, legend, isShowAmedas, { setLegend, showAmedas }];
+  return [mapContainer, isLoading, lastModifiedRadioactivity, count, legend, { setLegend }];
 };
 
 export default useMap;
