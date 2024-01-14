@@ -5,11 +5,6 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import moment from 'moment';
 
 import {
-  POP_DEVICE_KBN,
-  WEATHER_SENSOR_FLG,
-  MEAS_EQUIP_SPEC,
-  AIR_DOSE_RATE,
-  AIR_DOSE_RATE_KEYS,
   AIR_DOSE_RATE_MOD,
   AIR_DOSE_RATE_MOD_KEYS,
 } from './define'
@@ -28,10 +23,6 @@ export const useMap = () => {
   const [isLoading, setLoading] = useState(false);
   const [lastModifiedRadioactivity, setLastModifiedRadioactivity] = useState(false);  // GeoJSON の lastModified
   const [count, setCount] = useState(false);  // GeoJSON の 地物数
-
-  const [legend, _setLegend] = useState('airDoseRate');
-
-  const legendRef = useRef('airDoseRate');
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -82,7 +73,7 @@ export const useMap = () => {
               'circle-stroke-color': 'gray',
               'circle-stroke-opacity': OPACITY,
               'circle-stroke-width': 1,
-              'circle-color': makeCircleColor(legendRef.current),
+              'circle-color': makeCircleColor(),
               'circle-opacity': OPACITY,
             }
           });
@@ -186,100 +177,34 @@ export const useMap = () => {
     }
   }, []);
 
-  const setLegend = (_legend) => {
-    legendRef.current = _legend;
-    _setLegend(_legend);
-
-    if (!map.current?.getLayer('radioactivity-layer')) return;
-    map.current.setPaintProperty('radioactivity-layer', 'circle-color', makeCircleColor(_legend));
-  }
-
-  return [mapContainer, isLoading, lastModifiedRadioactivity, count, legend, { setLegend }];
+  return [mapContainer, isLoading, lastModifiedRadioactivity, count];
 };
 
 export default useMap;
 
-const makeCircleColor = (legend) => {
+const makeCircleColor = () => {
   let circleColor = null;
-  switch (legend) {
-    case 'popDeviceKbn':
-      circleColor = ['match', ['get', 'popDeviceKbn'],];
-      Object.entries(POP_DEVICE_KBN).forEach(([key, value]) => {
-        circleColor.push(key, toRgb(value.color));
-      });
-      circleColor.push('rgb(255, 0, 255)'); // デフォルト色
-      break;
+  circleColor = ["case",
+    // 調整中
+    ['==', ['get', 'airDoseRate'], 'null'], toRgb([180, 180, 180]),
 
-    case 'weatherSensorFlg':
-      circleColor = ['match', ['get', 'weatherSensorFlg'],];
-      Object.entries(WEATHER_SENSOR_FLG).forEach(([key, value]) => {
-        circleColor.push(key, toRgb(value.color));
-      });
-      circleColor.push('rgb(255, 0, 255)'); // デフォルト色
-      break;
+    // 下限未達
+    ['all',
+      ['!=', ['get', 'measRangeLowLimit'], 'null'],
+      ['<', ['get', 'airDoseRate'], ['get', 'measRangeLowLimit']]
+    ], toRgb([0, 255, 255]),
 
-    case 'measEquipSpec':
-      circleColor = ['match', ['get', 'measEquipSpec'],];
-      Object.entries(MEAS_EQUIP_SPEC).forEach(([key, value]) => {
-        circleColor.push(key, toRgb(value.color));
-      });
-      circleColor.push('rgb(255, 0, 255)'); // デフォルト色
-      break;
+    // 上限超過
+    ['all',
+      ['!=', ['get', 'measRangeHighLimit'], 'null'],
+      ['<', ['get', 'measRangeHighLimit'], ['get', 'airDoseRate']]
+    ], toRgb([255, 0, 255]),
+  ];
 
-    case 'airDoseRate':
-      circleColor = ["case",
-        // 調整中
-        ['==', ['get', 'airDoseRate'], 'null'], toRgb([180, 180, 180]),
-
-        // 下限未達
-        ['all',
-          ['!=', ['get', 'measRangeLowLimit'], 'null'],
-          ['<', ['get', 'airDoseRate'], ['get', 'measRangeLowLimit']]
-        ], toRgb([255, 255, 255]),
-
-        // 上限超過
-        ['all',
-          ['!=', ['get', 'measRangeHighLimit'], 'null'],
-          ['<', ['get', 'measRangeHighLimit'], ['get', 'airDoseRate']]
-        ], toRgb([172, 63, 255]),
-      ];
-
-      AIR_DOSE_RATE_KEYS.forEach(key => {
-        circleColor.push(["<", Number(key), ["get", "airDoseRate"]], toRgb(AIR_DOSE_RATE[key].color));
-      });
-
-      circleColor.push("rgb(255, 0, 255)");// デフォルト値
-      break;
-
-    case 'airDoseRate-mod':
-      circleColor = ["case",
-        // 調整中
-        ['==', ['get', 'airDoseRate'], 'null'], toRgb([180, 180, 180]),
-
-        // 下限未達
-        ['all',
-          ['!=', ['get', 'measRangeLowLimit'], 'null'],
-          ['<', ['get', 'airDoseRate'], ['get', 'measRangeLowLimit']]
-        ], toRgb([0, 255, 255]),
-
-        // 上限超過
-        ['all',
-          ['!=', ['get', 'measRangeHighLimit'], 'null'],
-          ['<', ['get', 'measRangeHighLimit'], ['get', 'airDoseRate']]
-        ], toRgb([255, 0, 255]),
-      ];
-
-      AIR_DOSE_RATE_MOD_KEYS.forEach(key => {
-        circleColor.push(["<", Number(key), ["get", "airDoseRate"]], toRgb(AIR_DOSE_RATE_MOD[key].color));
-      });
-
-      circleColor.push("rgb(255, 0, 255)");// デフォルト値
-      break;
-
-    default:
-      circleColor = 'rgb(255, 0, 255)';
-      break;
-  }
+  AIR_DOSE_RATE_MOD_KEYS.forEach(key => {
+    circleColor.push(["<", Number(key), ["get", "airDoseRate"]], toRgb(AIR_DOSE_RATE_MOD[key].color));
+  });
+  circleColor.push("rgb(255, 0, 255)");// デフォルト値
 
   return circleColor;
 }
