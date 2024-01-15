@@ -32,7 +32,7 @@ code {
 
 .maplibregl-popup .maplibregl-popup-content {
   width: 350px;
-  max-height: 400px;
+  max-height: 450px;
   overflow-y: auto;
 
   font: 12px 'Hiragino Kaku Gothic ProN', 'YuGothic', 'Meiryo', 'sans-serif';
@@ -71,7 +71,7 @@ code {
 }
 
 .maplibregl-popup-content .news-list {
-  height: 100px;
+  max-height: 100px;
   margin: 0;
   padding-left: 1.0em;
   overflow-y: auto;
