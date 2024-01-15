@@ -53,17 +53,18 @@ const gradation = (pos) => {
   return hsvToRgb(hue, saturation, lightness);
 }
 export const AIR_DOSE_RATE_MOD = {
-  '0.001': { color: gradation(0 / 10), name: '0.001 μSv/h' },
-  '0.005': { color: gradation(1 / 10), name: '0.005 μSv/h' },
-  '0.01': { color: gradation(2 / 10), name: '0.01 μSv/h' },
-  '0.05': { color: gradation(3 / 10), name: '0.05 μSv/h' },
-  '0.1': { color: gradation(4 / 10), name: '0.1 μSv/h' },
-  '0.5': { color: gradation(5 / 10), name: '0.5 μSv/h' },
-  '1.0': { color: gradation(6 / 10), name: '1.0 μSv/h' },
-  '5.0': { color: gradation(7 / 10), name: '5.0 μSv/h' },
-  '10.0': { color: gradation(8 / 10), name: '10.0 μSv/h' },
-  '50.0': { color: gradation(9 / 10), name: '50.0 μSv/h' },
-  '100': { color: gradation(10 / 10), name: '100 μSv/h' },
+  '0.001': { color: gradation(0 / 11), name: '0.001 μSv/h' },
+  '0.005': { color: gradation(1 / 11), name: '0.005 μSv/h' },
+  '0.01': { color: gradation(2 / 11), name: '0.01 μSv/h' },
+  '0.05': { color: gradation(3 / 11), name: '0.05 μSv/h' },
+  '0.1': { color: gradation(4 / 11), name: '0.1 μSv/h' },
+  '0.5': { color: gradation(5 / 11), name: '0.5 μSv/h' },
+  '1.0': { color: gradation(6 / 11), name: '1.0 μSv/h' },
+  '5.0': { color: gradation(7 / 11), name: '5.0 μSv/h' },
+  '10.0': { color: gradation(8 / 11), name: '10.0 μSv/h' },
+  '50.0': { color: gradation(9 / 11), name: '50.0 μSv/h' },
+  '100': { color: gradation(10 / 11), name: '100 μSv/h' },
+  '500': { color: gradation(11 / 11), name: '500 μSv/h' },
   // '1000': { color: gradation( 7 / 10), name: '1000 μSv/h' },
 }
 
