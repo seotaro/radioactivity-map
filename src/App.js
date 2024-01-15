@@ -32,7 +32,7 @@ const Legend = (props) => {
     }));
     items.push({ code: null, name: '（下限未達）', color: [0, 255, 255] });
     items.push({ code: null, name: '（調整中）', color: [180, 180, 180] });
-    items.push({ code: null, name: '（その他）', color: [255, 0, 255] });
+    items.push({ code: null, name: '（その他）', color: [64, 64, 64] });
   }
 
   return (

@@ -58,6 +58,7 @@ export const useMap = () => {
           });
 
           // airDoseRate（放射線量）を降順でソートする。
+          // 測定単位が cps のものは missingFlg !== '1' で airDoseRate === 'null' になる...とりあえず放置する。 
           data.features.sort((a, b) => {
             return ((a.properties.airDoseRate === 'null') ? 0.0 : a.properties.airDoseRate) - ((b.properties.airDoseRate === 'null') ? 0.0 : b.properties.airDoseRate);
           });
@@ -150,6 +151,10 @@ export const useMap = () => {
               contents.push(`<tr><td class='key'>地点名称</td><td class='value'><ruby>${feature.properties.obsStationName}<rp>(</rp><rt>${feature.properties.obsStationNameKana}</rt><rp>)</rp></ruby></td></tr>`);
 
               const airDoseRate = (() => {
+                if (feature.properties.missingFlg === '1') {
+                  return '（調整中）';
+                }
+
                 if (feature.properties.measEquipSpec === 'シーベルト' || feature.properties.measEquipSpec === 'グレイ') {
                   return `${feature.properties.airDoseRate}<span class='unit'>μSv/h</span>`;
                 }
@@ -162,9 +167,15 @@ export const useMap = () => {
               })();
               contents.push(`<tr><td class='key'>空間線量率</td><td class='value'>${airDoseRate}</td></tr>`);
 
-              contents.push(`<tr><td class='key'>測定日時</td><td class='value'>${moment(feature.properties.measEndDatetime).format()}</td></tr>`);
+              const measEndDatetime = (() => {
+                if (feature.properties.missingFlg === '1') {
+                  return '（調整中）';
+                }
+                return moment(feature.properties.measEndDatetime).format();
+              })();
+              contents.push(`<tr><td class='key'>測定日時</td><td class='value'>${measEndDatetime}</td></tr>`);
               contents.push(`<tr><td class='key'>装置種別</td><td class='value'>${POP_DEVICE_KBN[feature.properties.popDeviceKbn].name}</td></tr>`);
-              contents.push(`<tr><td class='key'>測定装置仕様</td><td class='value'>${feature.properties.measEquipSpec}</td></tr>`);
+              contents.push(`<tr><td class='key'>測定装置仕様</td><td class='value'>${(feature.properties.measEquipSpec === 'null') ? '不明' : feature.properties.measEquipSpec}</td></tr>`);
               contents.push(`<tr><td class='key'>標高</td><td class='value'>${(feature.properties.altitude === 'null') ? '−' : feature.properties.altitude}<span class='unit'>m</span></td></tr>`);
               contents.push(`<tr><td class='key'>地上からの高さ</td><td class='value'>${(feature.properties.measAltitude === 'null') ? '−' : feature.properties.measAltitude * 100}<span class='unit'>cm</span></td></tr>`);
 
@@ -229,10 +240,10 @@ const makeCircleColor = () => {
   let circleColor = null;
   circleColor = ["case",
     // 調整中
-    ['all',
-      ['==', ['get', 'airDoseRate'], 'null'],
-      ['==', ['get', 'countingRate'], 'null']
-    ], toRgb([180, 180, 180]),
+    ['==', ['get', 'missingFlg'], '1'], toRgb([180, 180, 180]),
+
+    // 単位が cps のものは airDoseRate が null になる...がとりあえず放置する。
+    ['==', ['get', 'airDoseRate'], 'null'], toRgb([64, 64, 64]),
 
     // 下限未達
     ['all',
@@ -250,7 +261,7 @@ const makeCircleColor = () => {
   AIR_DOSE_RATE_MOD_KEYS.forEach(key => {
     circleColor.push(["<", Number(key), ["get", "airDoseRate"]], toRgb(AIR_DOSE_RATE_MOD[key].color));
   });
-  circleColor.push("rgb(255, 0, 255)");// デフォルト値
+  circleColor.push("rgb(64, 64, 64)");// デフォルト値
 
   return circleColor;
 }
