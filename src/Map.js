@@ -148,7 +148,20 @@ export const useMap = () => {
               contents.push('<table>');
               contents.push('<tbody>');
               contents.push(`<tr><td class='key'>地点名称</td><td class='value'><ruby>${feature.properties.obsStationName}<rp>(</rp><rt>${feature.properties.obsStationNameKana}</rt><rp>)</rp></ruby></td></tr>`);
-              contents.push(`<tr><td class='key'>空間線量率</td><td class='value'>${feature.properties.airDoseRate}<span class='unit'>μSv/h</span></td></tr>`);
+
+              const airDoseRate = (() => {
+                if (feature.properties.measEquipSpec === 'シーベルト' || feature.properties.measEquipSpec === 'グレイ') {
+                  return `${feature.properties.airDoseRate}<span class='unit'>μSv/h</span>`;
+                }
+
+                if (feature.properties.countingRate !== 'null') {
+                  return `${feature.properties.countingRate}<span class='unit'>cps</span>`;
+                }
+
+                return '不明';
+              })();
+              contents.push(`<tr><td class='key'>空間線量率</td><td class='value'>${airDoseRate}</td></tr>`);
+
               contents.push(`<tr><td class='key'>測定日時</td><td class='value'>${moment(feature.properties.measEndDatetime).format()}</td></tr>`);
               contents.push(`<tr><td class='key'>装置種別</td><td class='value'>${POP_DEVICE_KBN[feature.properties.popDeviceKbn].name}</td></tr>`);
               contents.push(`<tr><td class='key'>測定装置仕様</td><td class='value'>${feature.properties.measEquipSpec}</td></tr>`);
@@ -216,7 +229,10 @@ const makeCircleColor = () => {
   let circleColor = null;
   circleColor = ["case",
     // 調整中
-    ['==', ['get', 'airDoseRate'], 'null'], toRgb([180, 180, 180]),
+    ['all',
+      ['==', ['get', 'airDoseRate'], 'null'],
+      ['==', ['get', 'countingRate'], 'null']
+    ], toRgb([180, 180, 180]),
 
     // 下限未達
     ['all',
