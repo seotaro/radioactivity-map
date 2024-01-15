@@ -5,6 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import moment from 'moment';
 
 import {
+  POP_DEVICE_KBN,
   AIR_DOSE_RATE_MOD,
   AIR_DOSE_RATE_MOD_KEYS,
 } from './define'
@@ -140,30 +141,54 @@ export const useMap = () => {
           );
           if (0 < features.length) {
             for (let i = 0; i < features.length; i++) {
-              contents.push(`<h1>Radioactivity No.${i + 1}</h1>`);
+              contents.push(`<h1>選択中のモニタリングポスト No.${i + 1}</h1>`);
 
               const feature = features[i];
-              contents.push('<ul>');
-              Object.keys(feature.properties)
-                .sort((a, b) => {
-                  return a < b ? -1 : 1;
-                })
-                .map(key => contents.push(
-                  `<li key=${key}>
-                    <span class='key'>${key}:</span>
-                    <span class='value'>${(() => {
-                    if (feature.properties[key] == null) return '';
 
-                    // 時刻表記はローカルのタイムゾーンで表示する。
-                    if (key === 'measEndDatetime') {
-                      return moment(feature.properties[key]).format();
-                    }
-                    return feature.properties[key];
-                  })()}
-                    </span>
-                  </li>`
-                ))
-              contents.push('</ul>');
+              contents.push('<table>');
+              contents.push('<tbody>');
+              contents.push(`<tr><td class='key'>地点名称</td><td class='value'><ruby>${feature.properties.obsStationName}<rp>(</rp><rt>${feature.properties.obsStationNameKana}</rt><rp>)</rp></ruby></td></tr>`);
+              contents.push(`<tr><td class='key'>空間線量率</td><td class='value'>${feature.properties.airDoseRate}<span class='unit'>μSv/h</span></td></tr>`);
+              contents.push(`<tr><td class='key'>測定日時</td><td class='value'>${moment(feature.properties.measEndDatetime).format()}</td></tr>`);
+              contents.push(`<tr><td class='key'>装置種別</td><td class='value'>${POP_DEVICE_KBN[feature.properties.popDeviceKbn].name}</td></tr>`);
+              contents.push(`<tr><td class='key'>測定装置仕様</td><td class='value'>${feature.properties.measEquipSpec}</td></tr>`);
+              contents.push(`<tr><td class='key'>標高</td><td class='value'>${(feature.properties.altitude === 'null') ? '−' : feature.properties.altitude}<span class='unit'>m</span></td></tr>`);
+              contents.push(`<tr><td class='key'>地上からの高さ</td><td class='value'>${(feature.properties.measAltitude === 'null') ? '−' : feature.properties.measAltitude * 100}<span class='unit'>cm</span></td></tr>`);
+
+              const limit = (() => {
+                const measRangeLowLimit = (feature.properties.measRangeLowLimit === 'null') ? '−' : feature.properties.measRangeLowLimit;
+                const measRangeHighLimit = (feature.properties.measRangeHighLimit === 'null') ? '−' : feature.properties.measRangeHighLimit;
+                return `${measRangeLowLimit}<span class='unit'>μSv/h</span> 〜 ${measRangeHighLimit}<span class='unit'>μSv/h</span>`;
+              })();
+              contents.push(`<tr><td class='key'>測定範囲</td><td class='value'>${limit}</td></tr>`);
+
+              const wind = (() => {
+                if (feature.properties.weatherSensorFlg === '0') {
+                  return '−';
+                }
+                if (feature.properties.weatherSensorFlg === '1') {
+                  const windDirectionCodeName = (feature.properties.windDirectionCodeName === 'null') ? '−' : feature.properties.windDirectionCodeName;
+                  const windSpeed = (feature.properties.windSpeed === 'null') ? '−' : feature.properties.windSpeed;
+                  return `${windDirectionCodeName}, ${windSpeed}<span class='unit'>m/s<span>`;
+                }
+                return '不明';
+              })();
+              contents.push(`<tr><td class='key'>風向・風速</td><td class='value'>${wind}</td></tr>`);
+
+              contents.push('</tbody>');
+              contents.push('</table>');
+
+              {
+                const newsList = feature.properties.newsMapDisp.split('\r\n').reverse();
+                contents.push('<div class="news-contents">');
+                contents.push(`<span class='key'>お知らせ</span>`);
+                contents.push('<ul class="news-list">');
+                newsList.forEach(news => {
+                  contents.push(`<li class='news-item'><span >${news}</span></li>`);
+                });
+                contents.push('</ul>');
+                contents.push('</div>');
+              }
             }
           }
         }
