@@ -60,7 +60,21 @@ export const useMap = () => {
           // airDoseRate（放射線量）を降順でソートする。
           // 測定単位が cps のものは missingFlg !== '1' で airDoseRate === 'null' になる...とりあえず放置する。 
           data.features.sort((a, b) => {
-            return ((a.properties.airDoseRate === 'null') ? 0.0 : a.properties.airDoseRate) - ((b.properties.airDoseRate === 'null') ? 0.0 : b.properties.airDoseRate);
+            const x = (() => {
+              if (a.properties.airDoseRate === 'null') return 0.0;
+              if (a.properties.measRangeLowLimit === 'null') return a.properties.airDoseRate;
+              if (a.properties.airDoseRate < a.properties.measRangeLowLimit) return 0.0;
+              return a.properties.airDoseRate;
+            })();
+
+            const y = (() => {
+              if (b.properties.airDoseRate === 'null') return 0.0;
+              if (b.properties.measRangeLowLimit === 'null') return b.properties.airDoseRate;
+              if (b.properties.airDoseRate < b.properties.measRangeLowLimit) return 0.0;
+              return b.properties.airDoseRate;
+            })();
+
+            return x - y;
           });
           return data;
         })
