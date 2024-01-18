@@ -16,13 +16,19 @@ import {
 import { toRgb } from './utils'
 import { Loading } from './Loading';
 
+const Title = (props) => {
+  const { lastModifiedRadioactivity, count } = props;
+
+  return (
+    <Stack>
+      <Typography variant="h6" sx={{ m: 1, m: 1 }}>放射線量測定マップ</Typography>
+      <Typography variant="h7" sx={{ mx: 2, my: 0.1, fontSize: 12, color: 'gray' }}>放射線量: {lastModifiedRadioactivity ? moment(lastModifiedRadioactivity).format() : ''}</Typography>
+      <Typography variant="h7" sx={{ mx: 2, my: 0.1, fontSize: 12, color: 'gray' }}>モニタリングポスト数: {count ? count : ''}</Typography>
+    </Stack>
+  );
+};
 
 const Legend = (props) => {
-  const {
-    lastModifiedRadioactivity,
-    count,
-  } = props;
-
   const items = [];
   {
     // 降順でソート
@@ -35,44 +41,23 @@ const Legend = (props) => {
     items.push({ code: null, name: '（その他）', color: [64, 64, 64] });
   }
 
-  return (
-    <div style={{
-      position: 'absolute',
-      top: '10px',
-      left: '10px',
-      minWidth: '260px',
-      background: 'rgba(255, 255, 255, 0.8)',
-      overflowY: 'scroll',
-      zIndex: 1000,
-    }}>
-      <div className='legend-content'>
-        <Stack>
-          <Typography variant="h6" sx={{ m: 1, m: 1 }}>放射線量測定マップ</Typography>
-          <Typography variant="h7" sx={{ mx: 2, my: 0.1, fontSize: 12, color: 'gray' }}>放射線量: {lastModifiedRadioactivity ? moment(lastModifiedRadioactivity).format() : ''}</Typography>
-          <Typography variant="h7" sx={{ mx: 2, my: 0.1, fontSize: 12, color: 'gray' }}>モニタリングポスト数: {count ? count : ''}</Typography>
-        </Stack>
-
-        {/* 凡例カラーマップ */}
-        <Box sx={{ m: 1 }} >
-          <Typography variant="h7" sx={{ m: 1 }}>凡例</Typography>
-          <List dense={true}>
-            {items.map((item, index) => {
-              return (
-                <ListItem key={index}>
-                  <Box variant="outlined" sx={{ my: 0, width: 20, height: 20, bgcolor: toRgb(item.color) }} />
-                  <ListItemText
-                    primary={item.name}
-                    sx={{ mx: 1 }}
-                    primaryTypographyProps={{ style: { fontSize: 12 } }}
-                  />
-                </ListItem>
-              )
-            })}
-          </List>
-        </Box>
-      </div>
-    </div>
-  );
+  return (<>
+    <Typography variant="h7" sx={{ m: 1 }}>凡例</Typography>
+    <List dense={true}>
+      {items.map((item, index) => {
+        return (
+          <ListItem key={index}>
+            <Box variant="outlined" sx={{ my: 0, width: 20, height: 20, bgcolor: toRgb(item.color) }} />
+            <ListItemText
+              primary={item.name}
+              sx={{ mx: 1 }}
+              primaryTypographyProps={{ style: { fontSize: 12 } }}
+            />
+          </ListItem>
+        )
+      })}
+    </List>
+  </>);
 };
 
 function App() {
@@ -84,10 +69,20 @@ function App() {
 
     <Loading isLoading={isLoading} />
 
-    <Legend
-      lastModifiedRadioactivity={lastModifiedRadioactivity}
-      count={count}
-    />
+    <div style={{
+      position: 'absolute',
+      top: '10px',
+      left: '10px',
+      minWidth: '260px',
+      background: 'rgba(255, 255, 255, 0.8)',
+      overflowY: 'scroll',
+      zIndex: 1000,
+    }}>
+      <Stack>
+        <Title lastModifiedRadioactivity={lastModifiedRadioactivity} count={count} />
+        <Legend />
+      </Stack>
+    </div>
   </>);
 }
 
