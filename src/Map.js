@@ -18,12 +18,15 @@ const OPACITY = 0.8;
 export const useMap = () => {
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const popup = useRef(null);
   const [lng, setLng] = useState(139.712);
   const [lat, setLat] = useState(36.039);
   const [zoom, setZoom] = useState(8);
   const [isLoading, setLoading] = useState(false);
   const [lastModifiedRadioactivity, setLastModifiedRadioactivity] = useState(false);  // GeoJSON の lastModified
   const [count, setCount] = useState(false);  // GeoJSON の 地物数
+
+  const isSmartphoneRef = useRef(false);
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -127,7 +130,7 @@ export const useMap = () => {
 
       map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-      const popup = new maplibregl.Popup({
+      popup.current = new maplibregl.Popup({
         closeButton: false,
         closeOnClick: false
       });
@@ -143,7 +146,7 @@ export const useMap = () => {
 
       // クリックした feature のプロパティーをポップアップで表示する。
       map.current.on('click', async (e) => {
-        popup.remove();
+        popup.current.remove();
 
         if (!map.current.getLayer('radioactivity-layer')) return;
 
@@ -156,83 +159,20 @@ export const useMap = () => {
           );
           if (0 < features.length) {
             for (let i = 0; i < features.length; i++) {
-              contents.push(`<h1>選択中のモニタリングポスト No.${i + 1}</h1>`);
-
               const feature = features[i];
-
-              contents.push('<table>');
-              contents.push('<tbody>');
-              contents.push(`<tr><td class='key'>地点名称</td><td class='value'><ruby>${feature.properties.obsStationName}<rp>(</rp><rt>${feature.properties.obsStationNameKana}</rt><rp>)</rp></ruby></td></tr>`);
-
-              const airDoseRate = (() => {
-                if (feature.properties.missingFlg === '1') {
-                  return '（調整中）';
-                }
-
-                if (feature.properties.measEquipSpec === 'シーベルト' || feature.properties.measEquipSpec === 'グレイ') {
-                  return `${feature.properties.airDoseRate}<span class='unit'>μSv/h</span>`;
-                }
-
-                if (feature.properties.countingRate !== 'null') {
-                  return `${feature.properties.countingRate}<span class='unit'>cps</span>`;
-                }
-
-                return '不明';
-              })();
-              contents.push(`<tr><td class='key'>空間線量率</td><td class='value'>${airDoseRate}</td></tr>`);
-
-              const measEndDatetime = (() => {
-                if (feature.properties.missingFlg === '1') {
-                  return '（調整中）';
-                }
-                return moment(feature.properties.measEndDatetime).format();
-              })();
-              contents.push(`<tr><td class='key'>測定日時</td><td class='value'>${measEndDatetime}</td></tr>`);
-              contents.push(`<tr><td class='key'>装置種別</td><td class='value'>${POP_DEVICE_KBN[feature.properties.popDeviceKbn].name}</td></tr>`);
-              contents.push(`<tr><td class='key'>測定装置仕様</td><td class='value'>${(feature.properties.measEquipSpec === 'null') ? '不明' : feature.properties.measEquipSpec}</td></tr>`);
-              contents.push(`<tr><td class='key'>標高</td><td class='value'>${(feature.properties.altitude === 'null') ? '−' : feature.properties.altitude}<span class='unit'>m</span></td></tr>`);
-              contents.push(`<tr><td class='key'>地上からの高さ</td><td class='value'>${(feature.properties.measAltitude === 'null') ? '−' : feature.properties.measAltitude * 100}<span class='unit'>cm</span></td></tr>`);
-
-              const limit = (() => {
-                const measRangeLowLimit = (feature.properties.measRangeLowLimit === 'null') ? '−' : feature.properties.measRangeLowLimit;
-                const measRangeHighLimit = (feature.properties.measRangeHighLimit === 'null') ? '−' : feature.properties.measRangeHighLimit;
-                return `${measRangeLowLimit}<span class='unit'>μSv/h</span> 〜 ${measRangeHighLimit}<span class='unit'>μSv/h</span>`;
-              })();
-              contents.push(`<tr><td class='key'>測定範囲</td><td class='value'>${limit}</td></tr>`);
-
-              const wind = (() => {
-                if (feature.properties.weatherSensorFlg === '0') {
-                  return '−';
-                }
-                if (feature.properties.weatherSensorFlg === '1') {
-                  const windDirectionCodeName = (feature.properties.windDirectionCodeName === 'null') ? '−' : feature.properties.windDirectionCodeName;
-                  const windSpeed = (feature.properties.windSpeed === 'null') ? '−' : feature.properties.windSpeed;
-                  return `${windDirectionCodeName}, ${windSpeed}<span class='unit'>m/s<span>`;
-                }
-                return '不明';
-              })();
-              contents.push(`<tr><td class='key'>風向・風速</td><td class='value'>${wind}</td></tr>`);
-
-              contents.push('</tbody>');
-              contents.push('</table>');
-
-              {
-                const newsList = feature.properties.newsMapDisp.split('\r\n').reverse();
-                contents.push('<div class="news-contents">');
-                contents.push(`<span class='key'>お知らせ</span>`);
-                contents.push('<ul class="news-list">');
-                newsList.forEach(news => {
-                  contents.push(`<li class='news-item'><span >${news}</span></li>`);
-                });
-                contents.push('</ul>');
-                contents.push('</div>');
+              if (isSmartphoneRef.current) {
+                contents.push(`<h1>No.${i + 1}</h1>`);
+                contents.push(...makePopupForSmartphone(feature));
+              } else {
+                contents.push(`<h1>選択中のモニタリングポスト No.${i + 1}</h1>`);
+                contents.push(...makePopup(feature));
               }
             }
           }
         }
 
         if (0 < contents.length) {
-          popup.setLngLat(e.lngLat)
+          popup.current.setLngLat(e.lngLat)
             .setHTML(contents.join(''))
             .addTo(map.current);
         }
@@ -245,7 +185,15 @@ export const useMap = () => {
     }
   }, []);
 
-  return [mapContainer, isLoading, lastModifiedRadioactivity, count];
+  const setSmartphone = (isSmartphone = true) => {
+    isSmartphoneRef.current = isSmartphone;
+
+    if (popup.current) {
+      popup.current.remove();
+    }
+  }
+
+  return [mapContainer, isLoading, lastModifiedRadioactivity, count, { setSmartphone }];
 };
 
 export default useMap;
@@ -279,3 +227,113 @@ const makeCircleColor = () => {
 
   return circleColor;
 }
+
+const makePopup = (feature) => {
+  const contents = [];
+
+  contents.push('<table>');
+  contents.push('<tbody>');
+  contents.push(`<tr><td class='key'>地点名称</td><td class='value'><ruby>${feature.properties.obsStationName}<rp>(</rp><rt>${feature.properties.obsStationNameKana}</rt><rp>)</rp></ruby></td></tr>`);
+
+  const airDoseRate = (() => {
+    if (feature.properties.missingFlg === '1') {
+      return '（調整中）';
+    }
+
+    if (feature.properties.measEquipSpec === 'シーベルト' || feature.properties.measEquipSpec === 'グレイ') {
+      return `${feature.properties.airDoseRate}<span class='unit'>μSv/h</span>`;
+    }
+
+    if (feature.properties.countingRate !== 'null') {
+      return `${feature.properties.countingRate}<span class='unit'>cps</span>`;
+    }
+
+    return '不明';
+  })();
+  contents.push(`<tr><td class='key'>空間線量率</td><td class='value'>${airDoseRate}</td></tr>`);
+
+  const measEndDatetime = (() => {
+    if (feature.properties.missingFlg === '1') {
+      return '（調整中）';
+    }
+    return moment(feature.properties.measEndDatetime).format();
+  })();
+  contents.push(`<tr><td class='key'>測定日時</td><td class='value'>${measEndDatetime}</td></tr>`);
+  contents.push(`<tr><td class='key'>装置種別</td><td class='value'>${POP_DEVICE_KBN[feature.properties.popDeviceKbn].name}</td></tr>`);
+  contents.push(`<tr><td class='key'>測定装置仕様</td><td class='value'>${(feature.properties.measEquipSpec === 'null') ? '不明' : feature.properties.measEquipSpec}</td></tr>`);
+  contents.push(`<tr><td class='key'>標高</td><td class='value'>${(feature.properties.altitude === 'null') ? '−' : feature.properties.altitude}<span class='unit'>m</span></td></tr>`);
+  contents.push(`<tr><td class='key'>地上からの高さ</td><td class='value'>${(feature.properties.measAltitude === 'null') ? '−' : feature.properties.measAltitude * 100}<span class='unit'>cm</span></td></tr>`);
+
+  const limit = (() => {
+    const measRangeLowLimit = (feature.properties.measRangeLowLimit === 'null') ? '−' : feature.properties.measRangeLowLimit;
+    const measRangeHighLimit = (feature.properties.measRangeHighLimit === 'null') ? '−' : feature.properties.measRangeHighLimit;
+    return `${measRangeLowLimit}<span class='unit'>μSv/h</span> 〜 ${measRangeHighLimit}<span class='unit'>μSv/h</span>`;
+  })();
+  contents.push(`<tr><td class='key'>測定範囲</td><td class='value'>${limit}</td></tr>`);
+
+  const wind = (() => {
+    if (feature.properties.weatherSensorFlg === '0') {
+      return '−';
+    }
+    if (feature.properties.weatherSensorFlg === '1') {
+      const windDirectionCodeName = (feature.properties.windDirectionCodeName === 'null') ? '−' : feature.properties.windDirectionCodeName;
+      const windSpeed = (feature.properties.windSpeed === 'null') ? '−' : feature.properties.windSpeed;
+      return `${windDirectionCodeName}, ${windSpeed}<span class='unit'>m/s<span>`;
+    }
+    return '不明';
+  })();
+  contents.push(`<tr><td class='key'>風向・風速</td><td class='value'>${wind}</td></tr>`);
+
+  contents.push('</tbody>');
+  contents.push('</table>');
+
+  {
+    const newsList = feature.properties.newsMapDisp.split('\r\n').reverse();
+    contents.push('<div class="news-contents">');
+    contents.push(`<span class='key'>お知らせ</span>`);
+    contents.push('<ul class="news-list">');
+    newsList.forEach(news => {
+      contents.push(`<li class='news-item'>${news}</li>`);
+    });
+    contents.push('</ul>');
+    contents.push('</div>');
+  }
+
+  return contents;
+};
+
+
+const makePopupForSmartphone = (feature) => {
+  const contents = [];
+
+  contents.push('<ul>');
+  contents.push(`<li class='value'><ruby>${feature.properties.obsStationName}<rp>(</rp><rt>${feature.properties.obsStationNameKana}</rt><rp>)</rp></ruby></li>`);
+
+  const airDoseRate = (() => {
+    if (feature.properties.missingFlg === '1') {
+      return '（調整中）';
+    }
+
+    if (feature.properties.measEquipSpec === 'シーベルト' || feature.properties.measEquipSpec === 'グレイ') {
+      return `${feature.properties.airDoseRate}<span class='unit'>μSv/h</span>`;
+    }
+
+    if (feature.properties.countingRate !== 'null') {
+      return `${feature.properties.countingRate}<span class='unit'>cps</span>`;
+    }
+
+    return '不明';
+  })();
+  contents.push(`<li class='value'>${airDoseRate}</li>`);
+
+  const measEndDatetime = (() => {
+    if (feature.properties.missingFlg === '1') {
+      return '（調整中）';
+    }
+    return moment(feature.properties.measEndDatetime).format();
+  })();
+  contents.push(`<li class='value'>${measEndDatetime}</li>`);
+
+  contents.push('</ul>');
+  return contents;
+};
