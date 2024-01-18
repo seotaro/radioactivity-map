@@ -92,8 +92,12 @@ code {
   color: #555555;
 }
 
-.maplibregl-popup-content ul {}
+.maplibregl-popup-content ul {
+  margin: 0;
+  padding: 0;
+}
 
 .maplibregl-popup-content li {
   list-style-type: none;
+  margin-left: 1.0em;
 }
