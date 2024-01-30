@@ -18,13 +18,12 @@ import { Loading } from './Loading';
 import { mediaQuery, useMediaQuery } from './useMediaQuery';
 
 const Title = (props) => {
-  const { lastModifiedRadioactivity, count } = props;
+  const { count } = props;
 
   return (
     <Box sx={{ m: 1 }} >
       <Stack>
         <Typography variant="h6" sx={{}}>放射線量測定マップ</Typography>
-        <Typography variant="h7" sx={{ mx: 1, my: 0.1, fontSize: 12, color: 'gray' }}>放射線量: {lastModifiedRadioactivity ? moment(lastModifiedRadioactivity).format() : ''}</Typography>
         <Typography variant="h7" sx={{ mx: 1, my: 0.1, fontSize: 12, color: 'gray' }}>モニタリングポスト数: {count ? count : ''}</Typography>
       </Stack>
     </Box>
@@ -66,7 +65,7 @@ const Legend = (props) => {
 };
 
 function App() {
-  const [mapContainer, isLoading, lastModifiedRadioactivity, count, { setSmartphone }] = useMap();
+  const [mapContainer, isLoading, count, { setSmartphone }] = useMap();
   const isSmartphone = useMediaQuery(mediaQuery.smartphone);
 
   useEffect(() => {
@@ -88,7 +87,7 @@ function App() {
       zIndex: 1000,
     }}>
       <Stack>
-        <Title lastModifiedRadioactivity={lastModifiedRadioactivity} count={count} />
+        <Title count={count} />
         {!isSmartphone && <Legend />}
       </Stack>
     </div>

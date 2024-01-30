@@ -23,7 +23,6 @@ export const useMap = () => {
   const [lat, setLat] = useState(36.039);
   const [zoom, setZoom] = useState(8);
   const [isLoading, setLoading] = useState(false);
-  const [lastModifiedRadioactivity, setLastModifiedRadioactivity] = useState(false);  // GeoJSON の lastModified
   const [count, setCount] = useState(false);  // GeoJSON の 地物数
 
   const isSmartphoneRef = useRef(false);
@@ -115,7 +114,6 @@ export const useMap = () => {
             }
           });
 
-          setLastModifiedRadioactivity(data.lastModified);
           setCount(data.features.length);
           setLoading(false);
         })
@@ -207,7 +205,7 @@ export const useMap = () => {
     }
   }
 
-  return [mapContainer, isLoading, lastModifiedRadioactivity, count, { setSmartphone }];
+  return [mapContainer, isLoading, count, { setSmartphone }];
 };
 
 export default useMap;
