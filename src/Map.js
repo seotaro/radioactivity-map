@@ -290,18 +290,18 @@ const makePopup = (feature) => {
   })();
   contents.push(`<tr><td class='key'>測定範囲</td><td class='value'>${limit}</td></tr>`);
 
-  const wind = (() => {
-    if (feature.properties.weatherSensorFlg === '0') {
-      return '−';
-    }
-    if (feature.properties.weatherSensorFlg === '1') {
-      const windDirectionCodeName = (feature.properties.windDirectionCodeName === 'null') ? '−' : feature.properties.windDirectionCodeName;
-      const windSpeed = (feature.properties.windSpeed === 'null') ? '−' : feature.properties.windSpeed;
-      return `${windDirectionCodeName}, ${windSpeed}<span class='unit'>m/s<span>`;
-    }
-    return '不明';
-  })();
-  contents.push(`<tr><td class='key'>風向・風速</td><td class='value'>${wind}</td></tr>`);
+  // const wind = (() => {
+  //   if (feature.properties.weatherSensorFlg === '0') {
+  //     return '−';
+  //   }
+  //   if (feature.properties.weatherSensorFlg === '1') {
+  //     const windDirectionCodeName = (feature.properties.windDirectionCodeName === 'null') ? '−' : feature.properties.windDirectionCodeName;
+  //     const windSpeed = (feature.properties.windSpeed === 'null') ? '−' : feature.properties.windSpeed;
+  //     return `${windDirectionCodeName}, ${windSpeed}<span class='unit'>m/s<span>`;
+  //   }
+  //   return '不明';
+  // })();
+  // contents.push(`<tr><td class='key'>風向・風速</td><td class='value'>${wind}</td></tr>`);
 
   contents.push('</tbody>');
   contents.push('</table>');
