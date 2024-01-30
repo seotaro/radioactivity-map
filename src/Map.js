@@ -45,7 +45,7 @@ export const useMap = () => {
     map.current.on('load', async () => {
       setLoading(true);
 
-      fetch(`${RADIOACTIVITY_API_URL}/airDoseRate`)
+      fetch(RADIOACTIVITY_API_URL)
         .then(response => {
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -60,21 +60,18 @@ export const useMap = () => {
               .forEach(key => feature.properties[key] = 'null');
           });
 
-          // airDoseRate（放射線量）を降順でソートする。
-          // 測定単位が cps のものは missingFlg !== '1' で airDoseRate === 'null' になる...とりあえず放置する。 
+          // 放射線量を降順でソートする。測定単位が cps のものも合わせてソートする。
           data.features.sort((a, b) => {
             const x = (() => {
-              if (a.properties.airDoseRate === 'null') return 0.0;
-              if (a.properties.measRangeLowLimit === 'null') return a.properties.airDoseRate;
-              if (a.properties.airDoseRate < a.properties.measRangeLowLimit) return 0.0;
-              return a.properties.airDoseRate;
+              if (a.properties.measRangeLowLimit === 'null') return a.properties.value;
+              if (a.properties.value < a.properties.measRangeLowLimit) return 0.0;
+              return a.properties.value;
             })();
 
             const y = (() => {
-              if (b.properties.airDoseRate === 'null') return 0.0;
-              if (b.properties.measRangeLowLimit === 'null') return b.properties.airDoseRate;
-              if (b.properties.airDoseRate < b.properties.measRangeLowLimit) return 0.0;
-              return b.properties.airDoseRate;
+              if (b.properties.measRangeLowLimit === 'null') return b.properties.value;
+              if (b.properties.value < b.properties.measRangeLowLimit) return 0.0;
+              return b.properties.value;
             })();
 
             return x - y;
@@ -82,72 +79,7 @@ export const useMap = () => {
           return data;
         })
         .then(data => {
-          map.current.addSource('radioactivity-airdoserate', {
-            type: 'geojson',
-            data,
-            attribution: '<a href="https://www.erms.nsr.go.jp/nra-ramis-webg/" target="_blank">「放射線モニタリング情報共有・公表システム」（原子力規制委員会）を加工して作成</a>',
-          });
-
-          map.current.addLayer({
-            id: 'radioactivity-airdoserate-layer',
-            type: 'circle',
-            source: 'radioactivity-airdoserate',
-            paint: {
-              'circle-radius': 6,
-              'circle-stroke-color': 'gray',
-              'circle-stroke-opacity': OPACITY,
-              'circle-stroke-width': 1,
-              'circle-color': makeAirDoseRateCircleColor(),
-              'circle-opacity': OPACITY,
-            }
-          });
-
-          setLastModifiedRadioactivity(data.lastModified);
-          setCount(data.features.length);
-          setLoading(false);
-        })
-        .catch(error => {
-          console.log('Fetch error: ' + error.message);
-        });
-
-      fetch(`${RADIOACTIVITY_API_URL}/countingRate`)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          // null のプロパティーは queryRenderedFeatures で返ってこないので便宜上 'null' に置き換えて扱う。
-          data.features.forEach(feature => {
-            Object.keys(feature.properties)
-              .filter(key => (feature.properties[key] === null))
-              .forEach(key => feature.properties[key] = 'null');
-          });
-
-          // airDoseRate（放射線量）を降順でソートする。
-          // 測定単位が cps のものは missingFlg !== '1' で airDoseRate === 'null' になる...とりあえず放置する。 
-          data.features.sort((a, b) => {
-            const x = (() => {
-              if (a.properties.airDoseRate === 'null') return 0.0;
-              if (a.properties.measRangeLowLimit === 'null') return a.properties.airDoseRate;
-              if (a.properties.airDoseRate < a.properties.measRangeLowLimit) return 0.0;
-              return a.properties.airDoseRate;
-            })();
-
-            const y = (() => {
-              if (b.properties.airDoseRate === 'null') return 0.0;
-              if (b.properties.measRangeLowLimit === 'null') return b.properties.airDoseRate;
-              if (b.properties.airDoseRate < b.properties.measRangeLowLimit) return 0.0;
-              return b.properties.airDoseRate;
-            })();
-
-            return x - y;
-          });
-          return data;
-        })
-        .then(data => {
-          map.current.addSource('radioactivity-countingrate', {
+          map.current.addSource('radioactivity', {
             type: 'geojson',
             data,
             attribution: '<a href="https://www.erms.nsr.go.jp/nra-ramis-webg/" target="_blank">「放射線モニタリング情報共有・公表システム」（原子力規制委員会）を加工して作成</a>',
@@ -156,13 +88,29 @@ export const useMap = () => {
           map.current.addLayer({
             id: 'radioactivity-countingrate-layer',
             type: 'circle',
-            source: 'radioactivity-countingrate',
+            source: 'radioactivity',
+            filter: ['==', ['get', 'measEquipSpecEn'], 'Count'],
             paint: {
               'circle-radius': 6,
               'circle-stroke-color': 'gray',
               'circle-stroke-opacity': OPACITY,
               'circle-stroke-width': 1,
               'circle-color': makeCountingRateCircleColor(),
+              'circle-opacity': OPACITY,
+            }
+          });
+
+          map.current.addLayer({
+            id: 'radioactivity-airdoserate-layer',
+            type: 'circle',
+            source: 'radioactivity',
+            filter: ['!=', ['get', 'measEquipSpecEn'], 'Count'],
+            paint: {
+              'circle-radius': 6,
+              'circle-stroke-color': 'gray',
+              'circle-stroke-opacity': OPACITY,
+              'circle-stroke-width': 1,
+              'circle-color': makeAirDoseRateCircleColor(),
               'circle-opacity': OPACITY,
             }
           });
@@ -272,18 +220,18 @@ const makeAirDoseRateCircleColor = () => {
     // 下限未達
     ['all',
       ['!=', ['get', 'measRangeLowLimit'], 'null'],
-      ['<', ['get', 'airDoseRate'], ['get', 'measRangeLowLimit']]
+      ['<', ['get', 'value'], ['get', 'measRangeLowLimit']]
     ], toRgb([0, 255, 255]),
 
     // 上限超過
     ['all',
       ['!=', ['get', 'measRangeHighLimit'], 'null'],
-      ['<', ['get', 'measRangeHighLimit'], ['get', 'airDoseRate']]
+      ['<', ['get', 'measRangeHighLimit'], ['get', 'value']]
     ], toRgb([255, 0, 255]),
   ];
 
   AIR_DOSE_RATE_MOD_KEYS.forEach(key => {
-    circleColor.push(["<", Number(key), ["get", "airDoseRate"]], toRgb(AIR_DOSE_RATE_MOD[key].color));
+    circleColor.push(["<", Number(key), ["get", "value"]], toRgb(AIR_DOSE_RATE_MOD[key].color));
   });
   circleColor.push("rgb(64, 64, 64)");// デフォルト値
 
@@ -312,12 +260,13 @@ const makePopup = (feature) => {
       return '（調整中）';
     }
 
-    if (feature.properties.measEquipSpec === 'シーベルト' || feature.properties.measEquipSpec === 'グレイ') {
-      return `${feature.properties.airDoseRate}<span class='unit'>μSv/h</span>`;
-    }
+    switch (feature.properties.measEquipSpecEn) {
+      case 'Sievert':
+      case 'Gray':
+        return `${feature.properties.value}<span class='unit'>μSv/h</span>`;
 
-    if (feature.properties.countingRate !== 'null') {
-      return `${feature.properties.countingRate}<span class='unit'>cps</span>`;
+      case 'Count':
+        return `${feature.properties.value}<span class='unit'>cps</span>`;
     }
 
     return '不明';
@@ -332,7 +281,7 @@ const makePopup = (feature) => {
   })();
   contents.push(`<tr><td class='key'>測定日時</td><td class='value'>${measEndDatetime}</td></tr>`);
   contents.push(`<tr><td class='key'>装置種別</td><td class='value'>${POP_DEVICE_KBN[feature.properties.popDeviceKbn].name}</td></tr>`);
-  contents.push(`<tr><td class='key'>測定装置仕様</td><td class='value'>${(feature.properties.measEquipSpec === 'null') ? '不明' : feature.properties.measEquipSpec}</td></tr>`);
+  contents.push(`<tr><td class='key'>測定装置仕様</td><td class='value'>${(feature.properties.measEquipSpecEn === 'null') ? '不明' : feature.properties.measEquipSpecEn}</td></tr>`);
   contents.push(`<tr><td class='key'>標高</td><td class='value'>${(feature.properties.altitude === 'null') ? '−' : feature.properties.altitude}<span class='unit'>m</span></td></tr>`);
   contents.push(`<tr><td class='key'>地上からの高さ</td><td class='value'>${(feature.properties.measAltitude === 'null') ? '−' : feature.properties.measAltitude * 100}<span class='unit'>cm</span></td></tr>`);
 
@@ -386,12 +335,13 @@ const makePopupForSmartphone = (feature) => {
       return '（調整中）';
     }
 
-    if (feature.properties.measEquipSpec === 'シーベルト' || feature.properties.measEquipSpec === 'グレイ') {
-      return `${feature.properties.airDoseRate}<span class='unit'>μSv/h</span>`;
-    }
+    switch (feature.properties.measEquipSpecEn) {
+      case 'Sievert':
+      case 'Gray':
+        return `${feature.properties.value}<span class='unit'>μSv/h</span>`;
 
-    if (feature.properties.countingRate !== 'null') {
-      return `${feature.properties.countingRate}<span class='unit'>cps</span>`;
+      case 'Count':
+        return `${feature.properties.value}<span class='unit'>cps</span>`;
     }
 
     return '不明';
