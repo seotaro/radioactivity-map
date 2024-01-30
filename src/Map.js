@@ -45,7 +45,7 @@ export const useMap = () => {
     map.current.on('load', async () => {
       setLoading(true);
 
-      fetch(RADIOACTIVITY_API_URL)
+      fetch(`${RADIOACTIVITY_API_URL}/airDoseRate`)
         .then(response => {
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -82,22 +82,87 @@ export const useMap = () => {
           return data;
         })
         .then(data => {
-          map.current.addSource('radioactivity', {
+          map.current.addSource('radioactivity-airdoserate', {
             type: 'geojson',
             data,
             attribution: '<a href="https://www.erms.nsr.go.jp/nra-ramis-webg/" target="_blank">「放射線モニタリング情報共有・公表システム」（原子力規制委員会）を加工して作成</a>',
           });
 
           map.current.addLayer({
-            id: 'radioactivity-layer',
+            id: 'radioactivity-airdoserate-layer',
             type: 'circle',
-            source: 'radioactivity',
+            source: 'radioactivity-airdoserate',
             paint: {
               'circle-radius': 6,
               'circle-stroke-color': 'gray',
               'circle-stroke-opacity': OPACITY,
               'circle-stroke-width': 1,
-              'circle-color': makeCircleColor(),
+              'circle-color': makeAirDoseRateCircleColor(),
+              'circle-opacity': OPACITY,
+            }
+          });
+
+          setLastModifiedRadioactivity(data.lastModified);
+          setCount(data.features.length);
+          setLoading(false);
+        })
+        .catch(error => {
+          console.log('Fetch error: ' + error.message);
+        });
+
+      fetch(`${RADIOACTIVITY_API_URL}/countingRate`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          // null のプロパティーは queryRenderedFeatures で返ってこないので便宜上 'null' に置き換えて扱う。
+          data.features.forEach(feature => {
+            Object.keys(feature.properties)
+              .filter(key => (feature.properties[key] === null))
+              .forEach(key => feature.properties[key] = 'null');
+          });
+
+          // airDoseRate（放射線量）を降順でソートする。
+          // 測定単位が cps のものは missingFlg !== '1' で airDoseRate === 'null' になる...とりあえず放置する。 
+          data.features.sort((a, b) => {
+            const x = (() => {
+              if (a.properties.airDoseRate === 'null') return 0.0;
+              if (a.properties.measRangeLowLimit === 'null') return a.properties.airDoseRate;
+              if (a.properties.airDoseRate < a.properties.measRangeLowLimit) return 0.0;
+              return a.properties.airDoseRate;
+            })();
+
+            const y = (() => {
+              if (b.properties.airDoseRate === 'null') return 0.0;
+              if (b.properties.measRangeLowLimit === 'null') return b.properties.airDoseRate;
+              if (b.properties.airDoseRate < b.properties.measRangeLowLimit) return 0.0;
+              return b.properties.airDoseRate;
+            })();
+
+            return x - y;
+          });
+          return data;
+        })
+        .then(data => {
+          map.current.addSource('radioactivity-countingrate', {
+            type: 'geojson',
+            data,
+            attribution: '<a href="https://www.erms.nsr.go.jp/nra-ramis-webg/" target="_blank">「放射線モニタリング情報共有・公表システム」（原子力規制委員会）を加工して作成</a>',
+          });
+
+          map.current.addLayer({
+            id: 'radioactivity-countingrate-layer',
+            type: 'circle',
+            source: 'radioactivity-countingrate',
+            paint: {
+              'circle-radius': 6,
+              'circle-stroke-color': 'gray',
+              'circle-stroke-opacity': OPACITY,
+              'circle-stroke-width': 1,
+              'circle-color': makeCountingRateCircleColor(),
               'circle-opacity': OPACITY,
             }
           });
@@ -138,7 +203,8 @@ export const useMap = () => {
       // feature にカーソルがあれば十字に変える。
       map.current.on('mousemove', (e) => {
         const layers = [];
-        if (map.current.getLayer('radioactivity-layer')) layers.push('radioactivity-layer');
+        if (map.current.getLayer('radioactivity-airdoserate-layer')) layers.push('radioactivity-airdoserate-layer');
+        if (map.current.getLayer('radioactivity-countingrate-layer')) layers.push('radioactivity-countingrate-layer');
 
         const features = map.current.queryRenderedFeatures(e.point, { layers });
         map.current.getCanvas().style.cursor = features.length ? 'crosshair' : '';
@@ -148,25 +214,25 @@ export const useMap = () => {
       map.current.on('click', async (e) => {
         popup.current.remove();
 
-        if (!map.current.getLayer('radioactivity-layer')) return;
+        const layers = [];
+        if (map.current.getLayer('radioactivity-airdoserate-layer')) layers.push('radioactivity-airdoserate-layer');
+        if (map.current.getLayer('radioactivity-countingrate-layer')) layers.push('radioactivity-countingrate-layer');
+
+        if (layers.length === 0) return;
 
         let contents = [];
 
         // 放射線量
-        if (map.current.getLayer('radioactivity-layer')) {
-          const features = map.current.queryRenderedFeatures(e.point,
-            { layers: ['radioactivity-layer'] }
-          );
-          if (0 < features.length) {
-            for (let i = 0; i < features.length; i++) {
-              const feature = features[i];
-              if (isSmartphoneRef.current) {
-                contents.push(`<h1>No.${i + 1}</h1>`);
-                contents.push(...makePopupForSmartphone(feature));
-              } else {
-                contents.push(`<h1>選択中のモニタリングポスト No.${i + 1}</h1>`);
-                contents.push(...makePopup(feature));
-              }
+        const features = map.current.queryRenderedFeatures(e.point, { layers });
+        if (0 < features.length) {
+          for (let i = 0; i < features.length; i++) {
+            const feature = features[i];
+            if (isSmartphoneRef.current) {
+              contents.push(`<h1>No.${i + 1}</h1>`);
+              contents.push(...makePopupForSmartphone(feature));
+            } else {
+              contents.push(`<h1>選択中のモニタリングポスト No.${i + 1}</h1>`);
+              contents.push(...makePopup(feature));
             }
           }
         }
@@ -198,14 +264,10 @@ export const useMap = () => {
 
 export default useMap;
 
-const makeCircleColor = () => {
+const makeAirDoseRateCircleColor = () => {
   let circleColor = null;
   circleColor = ["case",
-    // 調整中
-    ['==', ['get', 'missingFlg'], '1'], toRgb([180, 180, 180]),
-
-    // 単位が cps のものは airDoseRate が null になる...がとりあえず放置する。
-    ['==', ['get', 'airDoseRate'], 'null'], toRgb([64, 64, 64]),
+    ['==', ['get', 'missingFlg'], '1'], toRgb([180, 180, 180]), // 調整中
 
     // 下限未達
     ['all',
@@ -225,6 +287,16 @@ const makeCircleColor = () => {
   });
   circleColor.push("rgb(64, 64, 64)");// デフォルト値
 
+  return circleColor;
+}
+
+const makeCountingRateCircleColor = () => {
+  // 単位が cps のものは閾値が不明...がとりあえず放置する。
+  let circleColor = null;
+  circleColor = ["case",
+    ['==', ['get', 'missingFlg'], '1'], toRgb([180, 180, 180]),  // 調整中
+  ];
+  circleColor.push("rgb(64, 64, 64)");// デフォルト値
   return circleColor;
 }
 
