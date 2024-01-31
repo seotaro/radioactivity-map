@@ -23,7 +23,6 @@ export const useMap = () => {
   const [lat, setLat] = useState(36.039);
   const [zoom, setZoom] = useState(8);
   const [isLoading, setLoading] = useState(false);
-  const [lastModifiedRadioactivity, setLastModifiedRadioactivity] = useState(false);  // GeoJSON の lastModified
   const [count, setCount] = useState(false);  // GeoJSON の 地物数
 
   const isSmartphoneRef = useRef(false);
@@ -60,21 +59,18 @@ export const useMap = () => {
               .forEach(key => feature.properties[key] = 'null');
           });
 
-          // airDoseRate（放射線量）を降順でソートする。
-          // 測定単位が cps のものは missingFlg !== '1' で airDoseRate === 'null' になる...とりあえず放置する。 
+          // 放射線量を降順でソートする。測定単位が cps のものも合わせてソートする。
           data.features.sort((a, b) => {
             const x = (() => {
-              if (a.properties.airDoseRate === 'null') return 0.0;
-              if (a.properties.measRangeLowLimit === 'null') return a.properties.airDoseRate;
-              if (a.properties.airDoseRate < a.properties.measRangeLowLimit) return 0.0;
-              return a.properties.airDoseRate;
+              if (a.properties.measRangeLowLimit === 'null') return a.properties.value;
+              if (a.properties.value < a.properties.measRangeLowLimit) return 0.0;
+              return a.properties.value;
             })();
 
             const y = (() => {
-              if (b.properties.airDoseRate === 'null') return 0.0;
-              if (b.properties.measRangeLowLimit === 'null') return b.properties.airDoseRate;
-              if (b.properties.airDoseRate < b.properties.measRangeLowLimit) return 0.0;
-              return b.properties.airDoseRate;
+              if (b.properties.measRangeLowLimit === 'null') return b.properties.value;
+              if (b.properties.value < b.properties.measRangeLowLimit) return 0.0;
+              return b.properties.value;
             })();
 
             return x - y;
@@ -89,20 +85,35 @@ export const useMap = () => {
           });
 
           map.current.addLayer({
-            id: 'radioactivity-layer',
+            id: 'radioactivity-countingrate-layer',
             type: 'circle',
             source: 'radioactivity',
+            filter: ['==', ['get', 'measEquipSpecEn'], 'Count'],
             paint: {
               'circle-radius': 6,
               'circle-stroke-color': 'gray',
               'circle-stroke-opacity': OPACITY,
               'circle-stroke-width': 1,
-              'circle-color': makeCircleColor(),
+              'circle-color': makeCountingRateCircleColor(),
               'circle-opacity': OPACITY,
             }
           });
 
-          setLastModifiedRadioactivity(data.lastModified);
+          map.current.addLayer({
+            id: 'radioactivity-airdoserate-layer',
+            type: 'circle',
+            source: 'radioactivity',
+            filter: ['!=', ['get', 'measEquipSpecEn'], 'Count'],
+            paint: {
+              'circle-radius': 6,
+              'circle-stroke-color': 'gray',
+              'circle-stroke-opacity': OPACITY,
+              'circle-stroke-width': 1,
+              'circle-color': makeAirDoseRateCircleColor(),
+              'circle-opacity': OPACITY,
+            }
+          });
+
           setCount(data.features.length);
           setLoading(false);
         })
@@ -138,7 +149,8 @@ export const useMap = () => {
       // feature にカーソルがあれば十字に変える。
       map.current.on('mousemove', (e) => {
         const layers = [];
-        if (map.current.getLayer('radioactivity-layer')) layers.push('radioactivity-layer');
+        if (map.current.getLayer('radioactivity-airdoserate-layer')) layers.push('radioactivity-airdoserate-layer');
+        if (map.current.getLayer('radioactivity-countingrate-layer')) layers.push('radioactivity-countingrate-layer');
 
         const features = map.current.queryRenderedFeatures(e.point, { layers });
         map.current.getCanvas().style.cursor = features.length ? 'crosshair' : '';
@@ -148,25 +160,25 @@ export const useMap = () => {
       map.current.on('click', async (e) => {
         popup.current.remove();
 
-        if (!map.current.getLayer('radioactivity-layer')) return;
+        const layers = [];
+        if (map.current.getLayer('radioactivity-airdoserate-layer')) layers.push('radioactivity-airdoserate-layer');
+        if (map.current.getLayer('radioactivity-countingrate-layer')) layers.push('radioactivity-countingrate-layer');
+
+        if (layers.length === 0) return;
 
         let contents = [];
 
         // 放射線量
-        if (map.current.getLayer('radioactivity-layer')) {
-          const features = map.current.queryRenderedFeatures(e.point,
-            { layers: ['radioactivity-layer'] }
-          );
-          if (0 < features.length) {
-            for (let i = 0; i < features.length; i++) {
-              const feature = features[i];
-              if (isSmartphoneRef.current) {
-                contents.push(`<h1>No.${i + 1}</h1>`);
-                contents.push(...makePopupForSmartphone(feature));
-              } else {
-                contents.push(`<h1>選択中のモニタリングポスト No.${i + 1}</h1>`);
-                contents.push(...makePopup(feature));
-              }
+        const features = map.current.queryRenderedFeatures(e.point, { layers });
+        if (0 < features.length) {
+          for (let i = 0; i < features.length; i++) {
+            const feature = features[i];
+            if (isSmartphoneRef.current) {
+              contents.push(`<h1>No.${i + 1}</h1>`);
+              contents.push(...makePopupForSmartphone(feature));
+            } else {
+              contents.push(`<h1>選択中のモニタリングポスト No.${i + 1}</h1>`);
+              contents.push(...makePopup(feature));
             }
           }
         }
@@ -193,38 +205,44 @@ export const useMap = () => {
     }
   }
 
-  return [mapContainer, isLoading, lastModifiedRadioactivity, count, { setSmartphone }];
+  return [mapContainer, isLoading, count, { setSmartphone }];
 };
 
 export default useMap;
 
-const makeCircleColor = () => {
+const makeAirDoseRateCircleColor = () => {
   let circleColor = null;
   circleColor = ["case",
-    // 調整中
-    ['==', ['get', 'missingFlg'], '1'], toRgb([180, 180, 180]),
-
-    // 単位が cps のものは airDoseRate が null になる...がとりあえず放置する。
-    ['==', ['get', 'airDoseRate'], 'null'], toRgb([64, 64, 64]),
+    ['==', ['get', 'missingFlg'], '1'], toRgb([180, 180, 180]), // 調整中
 
     // 下限未達
     ['all',
       ['!=', ['get', 'measRangeLowLimit'], 'null'],
-      ['<', ['get', 'airDoseRate'], ['get', 'measRangeLowLimit']]
+      ['<', ['get', 'value'], ['get', 'measRangeLowLimit']]
     ], toRgb([0, 255, 255]),
 
     // 上限超過
     ['all',
       ['!=', ['get', 'measRangeHighLimit'], 'null'],
-      ['<', ['get', 'measRangeHighLimit'], ['get', 'airDoseRate']]
+      ['<', ['get', 'measRangeHighLimit'], ['get', 'value']]
     ], toRgb([255, 0, 255]),
   ];
 
   AIR_DOSE_RATE_MOD_KEYS.forEach(key => {
-    circleColor.push(["<", Number(key), ["get", "airDoseRate"]], toRgb(AIR_DOSE_RATE_MOD[key].color));
+    circleColor.push(["<", Number(key), ["get", "value"]], toRgb(AIR_DOSE_RATE_MOD[key].color));
   });
   circleColor.push("rgb(64, 64, 64)");// デフォルト値
 
+  return circleColor;
+}
+
+const makeCountingRateCircleColor = () => {
+  // 単位が cps のものは閾値が不明...がとりあえず放置する。
+  let circleColor = null;
+  circleColor = ["case",
+    ['==', ['get', 'missingFlg'], '1'], toRgb([180, 180, 180]),  // 調整中
+  ];
+  circleColor.push("rgb(64, 64, 64)");// デフォルト値
   return circleColor;
 }
 
@@ -240,12 +258,13 @@ const makePopup = (feature) => {
       return '（調整中）';
     }
 
-    if (feature.properties.measEquipSpec === 'シーベルト' || feature.properties.measEquipSpec === 'グレイ') {
-      return `${feature.properties.airDoseRate}<span class='unit'>μSv/h</span>`;
-    }
+    switch (feature.properties.measEquipSpecEn) {
+      case 'Sievert':
+      case 'Gray':
+        return `${feature.properties.value}<span class='unit'>μSv/h</span>`;
 
-    if (feature.properties.countingRate !== 'null') {
-      return `${feature.properties.countingRate}<span class='unit'>cps</span>`;
+      case 'Count':
+        return `${feature.properties.value}<span class='unit'>cps</span>`;
     }
 
     return '不明';
@@ -260,7 +279,7 @@ const makePopup = (feature) => {
   })();
   contents.push(`<tr><td class='key'>測定日時</td><td class='value'>${measEndDatetime}</td></tr>`);
   contents.push(`<tr><td class='key'>装置種別</td><td class='value'>${POP_DEVICE_KBN[feature.properties.popDeviceKbn].name}</td></tr>`);
-  contents.push(`<tr><td class='key'>測定装置仕様</td><td class='value'>${(feature.properties.measEquipSpec === 'null') ? '不明' : feature.properties.measEquipSpec}</td></tr>`);
+  contents.push(`<tr><td class='key'>測定装置仕様</td><td class='value'>${(feature.properties.measEquipSpecEn === 'null') ? '不明' : feature.properties.measEquipSpecEn}</td></tr>`);
   contents.push(`<tr><td class='key'>標高</td><td class='value'>${(feature.properties.altitude === 'null') ? '−' : feature.properties.altitude}<span class='unit'>m</span></td></tr>`);
   contents.push(`<tr><td class='key'>地上からの高さ</td><td class='value'>${(feature.properties.measAltitude === 'null') ? '−' : feature.properties.measAltitude * 100}<span class='unit'>cm</span></td></tr>`);
 
@@ -271,18 +290,18 @@ const makePopup = (feature) => {
   })();
   contents.push(`<tr><td class='key'>測定範囲</td><td class='value'>${limit}</td></tr>`);
 
-  const wind = (() => {
-    if (feature.properties.weatherSensorFlg === '0') {
-      return '−';
-    }
-    if (feature.properties.weatherSensorFlg === '1') {
-      const windDirectionCodeName = (feature.properties.windDirectionCodeName === 'null') ? '−' : feature.properties.windDirectionCodeName;
-      const windSpeed = (feature.properties.windSpeed === 'null') ? '−' : feature.properties.windSpeed;
-      return `${windDirectionCodeName}, ${windSpeed}<span class='unit'>m/s<span>`;
-    }
-    return '不明';
-  })();
-  contents.push(`<tr><td class='key'>風向・風速</td><td class='value'>${wind}</td></tr>`);
+  // const wind = (() => {
+  //   if (feature.properties.weatherSensorFlg === '0') {
+  //     return '−';
+  //   }
+  //   if (feature.properties.weatherSensorFlg === '1') {
+  //     const windDirectionCodeName = (feature.properties.windDirectionCodeName === 'null') ? '−' : feature.properties.windDirectionCodeName;
+  //     const windSpeed = (feature.properties.windSpeed === 'null') ? '−' : feature.properties.windSpeed;
+  //     return `${windDirectionCodeName}, ${windSpeed}<span class='unit'>m/s<span>`;
+  //   }
+  //   return '不明';
+  // })();
+  // contents.push(`<tr><td class='key'>風向・風速</td><td class='value'>${wind}</td></tr>`);
 
   contents.push('</tbody>');
   contents.push('</table>');
@@ -314,12 +333,13 @@ const makePopupForSmartphone = (feature) => {
       return '（調整中）';
     }
 
-    if (feature.properties.measEquipSpec === 'シーベルト' || feature.properties.measEquipSpec === 'グレイ') {
-      return `${feature.properties.airDoseRate}<span class='unit'>μSv/h</span>`;
-    }
+    switch (feature.properties.measEquipSpecEn) {
+      case 'Sievert':
+      case 'Gray':
+        return `${feature.properties.value}<span class='unit'>μSv/h</span>`;
 
-    if (feature.properties.countingRate !== 'null') {
-      return `${feature.properties.countingRate}<span class='unit'>cps</span>`;
+      case 'Count':
+        return `${feature.properties.value}<span class='unit'>cps</span>`;
     }
 
     return '不明';
