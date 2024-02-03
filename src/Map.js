@@ -61,15 +61,19 @@ export const useMap = () => {
 
           // 放射線量を降順でソートする。測定単位が cps のものも合わせてソートする。
           data.features.sort((a, b) => {
+
+            //  rangeFlg: -1=下限未達, 0=範囲内, 1=上限超過, null=値なし
             const x = (() => {
-              if (a.properties.measRangeLowLimit === 'null') return a.properties.value;
-              if (a.properties.value < a.properties.measRangeLowLimit) return 0.0;
+              if (a.properties.rangeFlg == null) return 0.0;
+              if (a.properties.rangeFlg === -1) return 0.0;
+              if (a.properties.rangeFlg === 1) return a.properties.measRangeHighLimit;
               return a.properties.value;
             })();
 
             const y = (() => {
-              if (b.properties.measRangeLowLimit === 'null') return b.properties.value;
-              if (b.properties.value < b.properties.measRangeLowLimit) return 0.0;
+              if (b.properties.rangeFlg == null) return 0.0;
+              if (b.properties.rangeFlg === -1) return 0.0;
+              if (b.properties.rangeFlg === 1) return b.properties.measRangeHighLimit;
               return b.properties.value;
             })();
 
@@ -213,25 +217,15 @@ export default useMap;
 const makeAirDoseRateCircleColor = () => {
   let circleColor = null;
   circleColor = ["case",
-    ['==', ['get', 'missingFlg'], '1'], toRgb([180, 180, 180]), // 調整中
-
-    // 下限未達
-    ['all',
-      ['!=', ['get', 'measRangeLowLimit'], 'null'],
-      ['<', ['get', 'value'], ['get', 'measRangeLowLimit']]
-    ], toRgb([0, 255, 255]),
-
-    // 上限超過
-    ['all',
-      ['!=', ['get', 'measRangeHighLimit'], 'null'],
-      ['<', ['get', 'measRangeHighLimit'], ['get', 'value']]
-    ], toRgb([255, 0, 255]),
+    ['==', ['get', 'rangeFlg'], 'null'], toRgb([180, 180, 180]),  // 調整中
+    ['==', ['get', 'rangeFlg'], -1], toRgb([0, 255, 255]),        // 下限未達
+    ['==', ['get', 'rangeFlg'], 1], toRgb([255, 0, 255]),         // 上限超過
   ];
 
   AIR_DOSE_RATE_MOD_KEYS.forEach(key => {
     circleColor.push(["<", Number(key), ["get", "value"]], toRgb(AIR_DOSE_RATE_MOD[key].color));
   });
-  circleColor.push("rgb(64, 64, 64)");// デフォルト値
+  circleColor.push("rgb(64, 64, 64)");  // デフォルト値
 
   return circleColor;
 }
