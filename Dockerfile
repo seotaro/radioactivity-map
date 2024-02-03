@@ -2,7 +2,7 @@
 FROM node:20-slim as react-build
 ENV NODE_ENV production
 ENV GENERATE_SOURCEMAP=false 
-ENV REACT_APP_ROUTE_BASENAME='radioactivity-viewer' 
+ENV REACT_APP_ROUTE_BASENAME='radioactivity-map' 
 ENV REACT_APP_RADIOACTIVITY_API_URL='https://api-eyamisplua-an.a.run.app'
 
 WORKDIR /app

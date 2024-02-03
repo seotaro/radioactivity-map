@@ -2,11 +2,11 @@
 
 [ライブデモ](https://viewer-eyamisplua-an.a.run.app/#7.29/37.114/139.596)
 
-<img width="841" alt="image" src="https://github.com/seotaro/radioactivity-viewer/assets/46148606/960848ee-71a8-4a2e-8d7c-fda7f321b5ba">
+<img width="841" alt="image" src="https://github.com/seotaro/radioactivity-map/assets/46148606/960848ee-71a8-4a2e-8d7c-fda7f321b5ba">
 
 ### Diagram
 
-![diagram drawio](https://github.com/seotaro/radioactivity-viewer/assets/46148606/a616735f-ef78-4677-a6f5-e5f514726c83)
+![diagram drawio](https://github.com/seotaro/radioactivity-map/assets/46148606/a616735f-ef78-4677-a6f5-e5f514726c83)
 
 - 時系列データベース「InfluxDB」を使いたかった
 - データベースのインスタンスを立てるのにGoogle Cloud PlatformよりさくらのVPSの方が安かった。
