@@ -36,6 +36,7 @@ export const useMap = () => {
       // style: 'std.json',
       center: [lng, lat],
       zoom: zoom,
+      minZoom: 4,
       maxZoom: 15,
       pitch: 0,
       hash: true,
