@@ -5,7 +5,7 @@ ACCOUNT_ID :=
 SERVICE_ACCOUNT :=
 REGION :=
 
-APP := viewer
+APP := radioactivity-map
 
 init:
 	gcloud services enable cloudbilling.googleapis.com --project=$(PROJECT_ID)
