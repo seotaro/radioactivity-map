@@ -6,6 +6,14 @@ SERVICE_ACCOUNT :=
 REGION :=
 
 APP := radioactivity-map
+RADIOACTIVITY_API_URL := https://api-radioactivity-123456.web.app
+FIREBASE_APIKEY :=
+FIREBASE_AUTHDOMAIN :=
+FIREBASE_PROJECTID :=
+FIREBASE_STORAGEBUCKET :=
+FIREBASE_MESSAGINGSENDERID :=
+FIREBASE_APPID :=
+FIREBASE_MEASUREMENTID :=
 
 init:
 	gcloud services enable cloudbilling.googleapis.com --project=$(PROJECT_ID)
@@ -14,13 +22,17 @@ init:
 	gcloud services enable run.googleapis.com --project=$(PROJECT_ID)
 
 deploy:
-	gcloud builds submit . --tag asia.gcr.io/$(PROJECT_ID)/$(APP) --project $(PROJECT_ID) 
-	gcloud run deploy $(APP) \
-		--project $(PROJECT_ID) \
-		--image asia.gcr.io/$(PROJECT_ID)/$(APP) \
-		--platform managed \
-		--region $(REGION) \
-		--memory 256Mi \
-		--concurrency 1 \
-		--max-instances 2 \
-		--allow-unauthenticated 
+	NODE_ENV=production \
+		GENERATE_SOURCEMAP=false \
+		REACT_APP_ROUTE_BASENAME='' \
+		REACT_APP_RADIOACTIVITY_API_URL=$(RADIOACTIVITY_API_URL) \
+		REACT_APP_FIREBASE_APIKEY=$(FIREBASE_APIKEY) \
+		REACT_APP_FIREBASE_AUTHDOMAIN=$(FIREBASE_AUTHDOMAIN) \
+		REACT_APP_FIREBASE_PROJECTID=$(FIREBASE_PROJECTID) \
+		REACT_APP_FIREBASE_STORAGEBUCKET=$(FIREBASE_STORAGEBUCKET) \
+		REACT_APP_FIREBASE_MESSAGINGSENDERID=$(FIREBASE_MESSAGINGSENDERID) \
+		REACT_APP_FIREBASE_APPID=$(FIREBASE_APPID) \
+		REACT_APP_FIREBASE_MEASUREMENTID=$(FIREBASE_MEASUREMENTID) \
+		yarn react-scripts build
+
+	firebase deploy --only hosting --project radioactivity-123456
