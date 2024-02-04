@@ -272,7 +272,7 @@ const makePopup = (feature) => {
 
     return '不明';
   })();
-  contents.push(`<tr><td class='key'>空間線量率</td><td class='value'>${airDoseRate}</td></tr>`);
+  contents.push(`<tr><td class='key'>空間線量率</td><td class='main-value'>${airDoseRate}</td></tr>`);
 
   const measEndDatetime = (() => {
     if (feature.properties.missingFlg === '1') {
