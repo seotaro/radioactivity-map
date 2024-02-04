@@ -253,13 +253,21 @@ const makePopup = (feature) => {
       return '（調整中）';
     }
 
+    let value = '';
+    switch (feature.properties.rangeFlg) {
+      // case null: value = `調整中`; break; // missingFlg === '1'
+      case 1: value = `（上限超過）`; break;
+      case -1: value = `（下限未達）`; break;
+      case 0: value = `${feature.properties.value}`; break;
+    }
+
     switch (feature.properties.measEquipSpecEn) {
       case 'Sievert':
       case 'Gray':
-        return `${feature.properties.value}<span class='unit'>μSv/h</span>`;
+        return `${value}<span class='unit'>μSv/h</span>`;
 
       case 'Count':
-        return `${feature.properties.value}<span class='unit'>cps</span>`;
+        return `${value}<span class='unit'>cps</span>`;
     }
 
     return '不明';
