@@ -49,19 +49,21 @@ const Legend = (props) => {
   const items = [];
   {
     // 降順でソート
-    items.push({ code: null, name: '上限超過', color: [255, 0, 255] });
+    items.push({ code: null, name: <span class='key'>上限超過</span>, color: [255, 0, 255] });
     items.push(...AIR_DOSE_RATE_MOD_KEYS.map(key => {
-      return { name: AIR_DOSE_RATE_MOD[key].name, color: AIR_DOSE_RATE_MOD[key].color }
+      return {
+        name: <><span class='key'>{AIR_DOSE_RATE_MOD[key].name}</span><span class='unit'>μSv/h</span></>, color: AIR_DOSE_RATE_MOD[key].color
+      }
     }));
-    items.push({ code: null, name: '（下限未達）', color: [0, 255, 255] });
-    items.push({ code: null, name: '（調整中）', color: [180, 180, 180] });
-    items.push({ code: null, name: '（その他）', color: [64, 64, 64] });
+    items.push({ code: null, name: <span class='key'>（下限未達）</span>, color: [0, 255, 255] });
+    items.push({ code: null, name: <span class='key'>（調整中）</span>, color: [180, 180, 180] });
+    items.push({ code: null, name: <span class='key'>（その他）</span>, color: [64, 64, 64] });
   }
 
   return (
     <Box sx={{ m: 1 }} >
       <Typography variant="h7" sx={{}}>凡例</Typography>
-      <List dense={true}>
+      <List dense={true} className='legend'>
         {items.map((item, index) => {
           return (
             <ListItem key={index}>
