@@ -1,6 +1,6 @@
 # 放射線量測定マップ
 
-[ライブデモ](https://viewer-eyamisplua-an.a.run.app/#7.29/37.114/139.596)
+[ライブデモ](https://radioactivity-123456.web.app/#8/36.039/139.712)
 
 <img width="841" alt="image" src="https://github.com/seotaro/radioactivity-map/assets/46148606/960848ee-71a8-4a2e-8d7c-fda7f321b5ba">
 
