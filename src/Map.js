@@ -246,6 +246,7 @@ const makePopup = (feature) => {
 
   contents.push('<table>');
   contents.push('<tbody>');
+  contents.push(`<tr><td class='key'>id</td><td class='value'>${feature.properties.obsStationId}</td></tr>`);
   contents.push(`<tr><td class='key'>地点名称</td><td class='value'><ruby>${feature.properties.obsStationName}<rp>(</rp><rt>${feature.properties.obsStationNameKana}</rt><rp>)</rp></ruby></td></tr>`);
 
   const airDoseRate = (() => {
