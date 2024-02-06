@@ -53,13 +53,6 @@ export const useMap = () => {
           return response.json();
         })
         .then(data => {
-          // null のプロパティーは queryRenderedFeatures で返ってこないので便宜上 'null' に置き換えて扱う。
-          data.features.forEach(feature => {
-            Object.keys(feature.properties)
-              .filter(key => (feature.properties[key] === null))
-              .forEach(key => feature.properties[key] = 'null');
-          });
-
           // 放射線量を降順でソートする。測定単位が cps のものも合わせてソートする。
           data.features.sort((a, b) => {
 
@@ -81,6 +74,14 @@ export const useMap = () => {
 
             return x - y;
           });
+
+          // null のプロパティーは queryRenderedFeatures で返ってこないので便宜上 'null' に置き換えて扱う。
+          data.features.forEach(feature => {
+            Object.keys(feature.properties)
+              .filter(key => (feature.properties[key] === null))
+              .forEach(key => feature.properties[key] = 'null');
+          });
+
           return data;
         })
         .then(data => {
