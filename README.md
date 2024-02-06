@@ -10,11 +10,11 @@
 
 - 時系列データベース「InfluxDB」を使いたかった
 - データベースのインスタンスを立てるのにGoogle Cloud PlatformよりさくらのVPSの方が安かった。
-- 計測値 → InfluxDBのfield
-- 変更頻度は多くないが計測に関係してくると考えられるもの（座標、高さ、装置種別、...）→ InfluxDBのtag
-- 変更頻度は多くなく計測に関係しないと考えられるもの（ステーション名称、お知らせ、...）→ PostgreSQL
-- 調整中のステーションは時刻がないが、そのままではInfluxDBで扱えないため取得時刻を入れた
+- 計測値（countingRate or airDoseRate） → InfluxDBのfield。
+- ステーションの情報（ステーション名称、座標、高さ、装置種別、お知らせ、...）→ PostgreSQL
+- 調整中（missingFlg='1'）はInfluxDBには格納せず、PostgreSQLを更新する。
 - ガイガー=ミュラー計数管（GM管）で計測しているステーションはmeasEquipSpecEn（=測定装置仕様）がnullだが'Count'という文字列を入れた。
+- API で rangeFlg（-1=下限未達, 0=範囲内, 1=上限超過, null=値なし） を追加した:
 
 ### Install
 
