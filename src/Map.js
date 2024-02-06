@@ -64,6 +64,7 @@ export const useMap = () => {
           data.features.sort((a, b) => {
 
             //  rangeFlg: -1=下限未達, 0=範囲内, 1=上限超過, null=値なし
+
             const x = (() => {
               if (a.properties.rangeFlg == null) return 0.0;
               if (a.properties.rangeFlg === -1) return 0.0;
@@ -235,7 +236,7 @@ const makeCountingRateCircleColor = () => {
   // 単位が cps のものは閾値が不明...がとりあえず放置する。
   let circleColor = null;
   circleColor = ["case",
-    ['==', ['get', 'missingFlg'], '1'], toRgb([180, 180, 180]),  // 調整中
+    ['==', ['get', 'rangeFlg'], 'null'], toRgb([180, 180, 180]),  // 調整中
   ];
   circleColor.push("rgb(64, 64, 64)");// デフォルト値
   return circleColor;
@@ -246,16 +247,16 @@ const makePopup = (feature) => {
 
   contents.push('<table>');
   contents.push('<tbody>');
+  contents.push(`<tr><td class='key'>id</td><td class='value'>${feature.properties.obsStationId}</td></tr>`);
   contents.push(`<tr><td class='key'>地点名称</td><td class='value'><ruby>${feature.properties.obsStationName}<rp>(</rp><rt>${feature.properties.obsStationNameKana}</rt><rp>)</rp></ruby></td></tr>`);
 
   const airDoseRate = (() => {
-    if (feature.properties.missingFlg === '1') {
+    if (feature.properties.rangeFlg === 'null') {
       return '（調整中）';
     }
 
     let value = '';
     switch (feature.properties.rangeFlg) {
-      // case null: value = `調整中`; break; // missingFlg === '1'
       case 1: value = `（上限超過）`; break;
       case -1: value = `（下限未達）`; break;
       case 0: value = `${feature.properties.value}`; break;
@@ -275,7 +276,7 @@ const makePopup = (feature) => {
   contents.push(`<tr><td class='key'>空間線量率</td><td class='main-value'>${airDoseRate}</td></tr>`);
 
   const measEndDatetime = (() => {
-    if (feature.properties.missingFlg === '1') {
+    if (feature.properties.rangeFlg === 'null') {
       return '（調整中）';
     }
     return moment(feature.properties.measEndDatetime).format();
@@ -332,7 +333,7 @@ const makePopupForSmartphone = (feature) => {
   contents.push(`<li class='value'><ruby>${feature.properties.obsStationName}<rp>(</rp><rt>${feature.properties.obsStationNameKana}</rt><rp>)</rp></ruby></li>`);
 
   const airDoseRate = (() => {
-    if (feature.properties.missingFlg === '1') {
+    if (feature.properties.rangeFlg === 'null') {
       return '（調整中）';
     }
 
@@ -350,7 +351,7 @@ const makePopupForSmartphone = (feature) => {
   contents.push(`<li class='value'>${airDoseRate}</li>`);
 
   const measEndDatetime = (() => {
-    if (feature.properties.missingFlg === '1') {
+    if (feature.properties.rangeFlg === 'null') {
       return '（調整中）';
     }
     return moment(feature.properties.measEndDatetime).format();
