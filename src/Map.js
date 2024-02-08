@@ -59,16 +59,16 @@ export const useMap = () => {
             //  rangeFlg: -1=下限未達, 0=範囲内, 1=上限超過, null=値なし
 
             const x = (() => {
-              if (a.properties.fugaFlg === 'missing') return 0.0;
-              if (a.properties.fugaFlg === 'under') return 0.0;
-              if (a.properties.fugaFlg === 'over') return a.properties.measRangeHighLimit;
+              if (a.properties.rangeFlg === 'missing') return 0.0;
+              if (a.properties.rangeFlg === 'under') return 0.0;
+              if (a.properties.rangeFlg === 'over') return a.properties.measRangeHighLimit;
               return a.properties.value;
             })();
 
             const y = (() => {
-              if (b.properties.fugaFlg === 'missing') return 0.0;
-              if (b.properties.fugaFlg === 'under') return 0.0;
-              if (b.properties.fugaFlg === 'over') return b.properties.measRangeHighLimit;
+              if (b.properties.rangeFlg === 'missing') return 0.0;
+              if (b.properties.rangeFlg === 'under') return 0.0;
+              if (b.properties.rangeFlg === 'over') return b.properties.measRangeHighLimit;
               return b.properties.value;
             })();
 
@@ -220,9 +220,9 @@ export default useMap;
 const makeAirDoseRateCircleColor = () => {
   let circleColor = null;
   circleColor = ["case",
-    ['==', ['get', 'fugaFlg'], 'missing'], toRgb([180, 180, 180]),  // 調整中
-    ['==', ['get', 'fugaFlg'], 'under'], toRgb([0, 255, 255]),        // 下限未達
-    ['==', ['get', 'fugaFlg'], 'over'], toRgb([255, 0, 255]),         // 上限超過
+    ['==', ['get', 'rangeFlg'], 'missing'], toRgb([180, 180, 180]),  // 調整中
+    ['==', ['get', 'rangeFlg'], 'under'], toRgb([0, 255, 255]),        // 下限未達
+    ['==', ['get', 'rangeFlg'], 'over'], toRgb([255, 0, 255]),         // 上限超過
   ];
 
   AIR_DOSE_RATE_MOD_KEYS.forEach(key => {
@@ -237,7 +237,7 @@ const makeCountingRateCircleColor = () => {
   // 単位が cps のものは閾値が不明...がとりあえず放置する。
   let circleColor = null;
   circleColor = ["case",
-    ['==', ['get', 'fugaFlg'], 'missing'], toRgb([180, 180, 180]),  // 調整中
+    ['==', ['get', 'rangeFlg'], 'missing'], toRgb([180, 180, 180]),  // 調整中
   ];
   circleColor.push("rgb(64, 64, 64)");// デフォルト値
   return circleColor;
@@ -252,12 +252,12 @@ const makePopup = (feature) => {
   contents.push(`<tr><td class='key'>地点名称</td><td class='value'><ruby>${feature.properties.obsStationName}<rp>(</rp><rt>${feature.properties.obsStationNameKana}</rt><rp>)</rp></ruby></td></tr>`);
 
   const airDoseRate = (() => {
-    if (feature.properties.fugaFlg === 'missing') {
+    if (feature.properties.rangeFlg === 'missing') {
       return '（調整中）';
     }
 
     let value = '';
-    switch (feature.properties.fugaFlg) {
+    switch (feature.properties.rangeFlg) {
       case 'over': value = `（上限超過）`; break;
       case 'under': value = `（下限未達）`; break;
       case 'normal': value = `${feature.properties.value}`; break;
@@ -277,7 +277,7 @@ const makePopup = (feature) => {
   contents.push(`<tr><td class='key'>空間線量率</td><td class='main-value'>${airDoseRate}</td></tr>`);
 
   const measEndDatetime = (() => {
-    if (feature.properties.fugaFlg === 'missing') {
+    if (feature.properties.rangeFlg === 'missing') {
       return '（調整中）';
     }
     return moment(feature.properties.measEndDatetime).format();
@@ -334,7 +334,7 @@ const makePopupForSmartphone = (feature) => {
   contents.push(`<li class='value'><ruby>${feature.properties.obsStationName}<rp>(</rp><rt>${feature.properties.obsStationNameKana}</rt><rp>)</rp></ruby></li>`);
 
   const airDoseRate = (() => {
-    if (feature.properties.fugaFlg === 'missing') {
+    if (feature.properties.rangeFlg === 'missing') {
       return '（調整中）';
     }
 
@@ -352,7 +352,7 @@ const makePopupForSmartphone = (feature) => {
   contents.push(`<li class='value'>${airDoseRate}</li>`);
 
   const measEndDatetime = (() => {
-    if (feature.properties.fugaFlg === 'missing') {
+    if (feature.properties.rangeFlg === 'missing') {
       return '（調整中）';
     }
     return moment(feature.properties.measEndDatetime).format();
