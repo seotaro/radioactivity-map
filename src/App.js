@@ -49,15 +49,15 @@ const Legend = (props) => {
   const items = [];
   {
     // 降順でソート
-    items.push({ code: null, name: <span class='key'>上限超過</span>, color: [255, 0, 255] });
+    items.push({ code: null, name: <span className='key'>上限超過</span>, color: [255, 0, 255] });
     items.push(...AIR_DOSE_RATE_MOD_KEYS.map(key => {
       return {
-        name: <><span class='key'>{AIR_DOSE_RATE_MOD[key].name}</span><span class='unit'>μSv/h</span></>, color: AIR_DOSE_RATE_MOD[key].color
+        name: <><span className='key'>{AIR_DOSE_RATE_MOD[key].name}</span><span className='unit'>μSv/h</span></>, color: AIR_DOSE_RATE_MOD[key].color
       }
     }));
-    items.push({ code: null, name: <span class='key'>（下限未達）</span>, color: [0, 255, 255] });
-    items.push({ code: null, name: <span class='key'>（調整中）</span>, color: [180, 180, 180] });
-    items.push({ code: null, name: <span class='key'>（その他）</span>, color: [64, 64, 64] });
+    items.push({ code: null, name: <span className='key'>（下限未達）</span>, color: [0, 255, 255] });
+    items.push({ code: null, name: <span className='key'>（調整中）</span>, color: [180, 180, 180] });
+    items.push({ code: null, name: <span className='key'>（その他）</span>, color: [64, 64, 64] });
   }
 
   return (
